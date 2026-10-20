@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "NativeSound",
+  "version": "1.0",
+  "description": "YouTube 영어 자막에 한국어 발음을 표시해줍니다.",
+  "permissions": [
+    "storage"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["*://*.youtube.com/*"],
+      "css": ["styles.css"],
+      "js": ["cmu_dict.js", "pronunciation.js", "content.js"]
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "NativeSound 설정"
+  }
+}

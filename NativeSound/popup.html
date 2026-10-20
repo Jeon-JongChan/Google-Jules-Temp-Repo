@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>NativeSound 옵션</title>
+    <style>
+        body { font-family: sans-serif; width: 250px; padding: 15px; }
+        .toggle-container { margin-top: 15px; }
+        label { display: flex; align-items: center; cursor: pointer; }
+        input[type="radio"] { margin-right: 10px; }
+        h3 { margin-top: 0; font-size: 16px; color: #333; }
+    </style>
+</head>
+<body>
+    <h3>발음 표시 모드</h3>
+    <div class="toggle-container">
+        <label>
+            <input type="radio" name="pronunciation_mode" value="word" checked>
+            단어별 정확한 발음
+        </label>
+        <br><br>
+        <label>
+            <input type="radio" name="pronunciation_mode" value="conversation">
+            실제 회화 발음 (연음 적용)
+        </label>
+    </div>
+    <script src="popup.js"></script>
+</body>
+</html>

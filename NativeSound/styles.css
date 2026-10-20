@@ -1,0 +1,9 @@
+.native-sound-pronunciation {
+    font-size: 0.7em;
+    color: #ffeb3b; /* 눈에 띄는 노란색 */
+    text-shadow: 1px 1px 2px black;
+    display: block;
+    text-align: center;
+    line-height: 1.2;
+    margin-top: 2px;
+}
