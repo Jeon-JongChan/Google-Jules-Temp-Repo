@@ -1,0 +1,24 @@
+{
+  "manifest_version": 2,
+  "name": "AI Studio Mobile Layout Experiment",
+  "version": "0.1.0",
+  "description": "Minimal, opt-in-friendly styling of supported Google creation pages. No login injection.",
+  "browser_specific_settings": {
+    "gecko": {"id": "mobile-ui@aistudio.local"}
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://flow.google.com/*",
+        "https://www.flowmusic.app/*",
+        "https://flowmusic.app/*",
+        "https://vids.new/*",
+        "https://vids.google.com/*",
+        "https://docs.google.com/videos/*"
+      ],
+      "css": ["mobile.css"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ]
+}
