@@ -4,25 +4,112 @@
     <meta charset="UTF-8">
     <title>NativeSound 옵션</title>
     <style>
-        body { font-family: sans-serif; width: 250px; padding: 15px; }
-        .toggle-container { margin-top: 15px; }
-        label { display: flex; align-items: center; cursor: pointer; }
-        input[type="radio"] { margin-right: 10px; }
-        h3 { margin-top: 0; font-size: 16px; color: #333; }
+        :root {
+            --primary-color: #ff0000;
+            --text-color: #333;
+            --bg-color: #f9f9f9;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            width: 280px;
+            padding: 20px;
+            margin: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+        h3 {
+            margin-top: 0;
+            font-size: 18px;
+            font-weight: 600;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+        h3 span {
+            margin-right: 8px;
+            font-size: 20px;
+        }
+        .toggle-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .option-card {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .option-card:hover {
+            border-color: #bbb;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .option-card.selected {
+            border-color: var(--primary-color);
+            background-color: #fff0f0;
+        }
+        label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            font-size: 14px;
+            width: 100%;
+        }
+        input[type="radio"] {
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border: 2px solid #aaa;
+            border-radius: 50%;
+            margin-right: 12px;
+            position: relative;
+            outline: none;
+            cursor: pointer;
+        }
+        input[type="radio"]:checked {
+            border-color: var(--primary-color);
+        }
+        input[type="radio"]:checked::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 10px;
+            height: 10px;
+            background-color: var(--primary-color);
+            border-radius: 50%;
+        }
+        .desc {
+            display: block;
+            font-size: 11px;
+            color: #666;
+            margin-top: 4px;
+            margin-left: 30px;
+        }
     </style>
 </head>
 <body>
-    <h3>발음 표시 모드</h3>
+    <h3><span>🎙️</span> NativeSound 설정</h3>
     <div class="toggle-container">
-        <label>
-            <input type="radio" name="pronunciation_mode" value="word" checked>
-            단어별 정확한 발음
-        </label>
-        <br><br>
-        <label>
-            <input type="radio" name="pronunciation_mode" value="conversation">
-            실제 회화 발음 (연음 적용)
-        </label>
+        <div class="option-card" id="card-word">
+            <label>
+                <input type="radio" name="pronunciation_mode" value="word">
+                단어별 정확한 발음
+            </label>
+            <span class="desc">사전에 등재된 표준 발음 기호 기준 (예: Want to -> 원트 투)</span>
+        </div>
+        <div class="option-card" id="card-conversation">
+            <label>
+                <input type="radio" name="pronunciation_mode" value="conversation">
+                실제 회화 발음 (연음 적용)
+            </label>
+            <span class="desc">원어민들이 주로 사용하는 자연스러운 연음 규칙 (예: Want to -> 워너)</span>
+        </div>
     </div>
     <script src="popup.js"></script>
 </body>

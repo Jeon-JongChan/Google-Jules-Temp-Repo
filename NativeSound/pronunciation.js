@@ -126,7 +126,6 @@ function getPronunciationForSentence(sentence, mode) {
 
     if (mode === 'conversation') {
         // 1. Try to find and replace conversational phrases first
-        let upperSentence = sentence.toUpperCase();
         for (const [phrase, pronunciation] of Object.entries(conversationalMapping)) {
             // Case insensitive replace for whole phrases
             const regex = new RegExp(`\\b${phrase}\\b`, 'gi');
@@ -143,11 +142,24 @@ function getPronunciationForSentence(sentence, mode) {
                 // Otherwise try to convert it (but might use conversational variations if we add them to word level)
                 // For instance, WATER -> 워러 in conversation mode.
                 const cleanWord = word.toUpperCase().replace(/[^A-Z']/g, '');
-                if (conversationalMapping[cleanWord]) {
-                     pronunciationResult.push(conversationalMapping[cleanWord]);
+                if (!cleanWord) {
+                     pronunciationResult.push(word);
+                     continue;
+                }
+
+                let p = conversationalMapping[cleanWord] ? conversationalMapping[cleanWord] : getPronunciationForWord(word, 'word');
+
+                if (p === cleanWord || p === "") {
+                     pronunciationResult.push(word);
                 } else {
-                     const p = getPronunciationForWord(word, 'word');
-                     pronunciationResult.push(p === cleanWord.toUpperCase() ? word : p);
+                     // Preserve punctuation
+                     const punctuationMatches = word.match(/^([^A-Za-z']*)[A-Za-z']+([^A-Za-z']*)$/);
+                     let prefix = "", suffix = "";
+                     if(punctuationMatches) {
+                         prefix = punctuationMatches[1] || "";
+                         suffix = punctuationMatches[2] || "";
+                     }
+                     pronunciationResult.push(prefix + p + suffix);
                 }
             }
         }
@@ -157,13 +169,26 @@ function getPronunciationForSentence(sentence, mode) {
         // Word mode: translate word by word
         const words = sentence.split(/\s+/);
         for (let word of words) {
-            const p = getPronunciationForWord(word, 'word');
-            // If not found in dict, just keep the original word or punctuation
             const cleanWord = word.toUpperCase().replace(/[^A-Z']/g, '');
-            if (p === cleanWord) {
+            if (!cleanWord) {
+                 pronunciationResult.push(word);
+                 continue;
+            }
+
+            const p = getPronunciationForWord(word, 'word');
+
+            // If not found in dict, just keep the original word or punctuation
+            if (p === cleanWord || p === "") {
                  pronunciationResult.push(word);
             } else {
-                 pronunciationResult.push(p);
+                 // Preserve punctuation
+                 const punctuationMatches = word.match(/^([^A-Za-z']*)[A-Za-z']+([^A-Za-z']*)$/);
+                 let prefix = "", suffix = "";
+                 if(punctuationMatches) {
+                     prefix = punctuationMatches[1] || "";
+                     suffix = punctuationMatches[2] || "";
+                 }
+                 pronunciationResult.push(prefix + p + suffix);
             }
         }
         return pronunciationResult.join(' ');

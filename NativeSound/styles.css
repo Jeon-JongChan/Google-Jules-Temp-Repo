@@ -1,9 +1,21 @@
 .native-sound-pronunciation {
-    font-size: 0.7em;
-    color: #ffeb3b; /* 눈에 띄는 노란색 */
-    text-shadow: 1px 1px 2px black;
+    font-size: 0.75em;
+    color: #ffd600; /* 조금 더 부드럽고 가독성 좋은 노란색 */
+    text-shadow:
+        -1px -1px 0 #000,
+        1px -1px 0 #000,
+        -1px 1px 0 #000,
+        1px 1px 0 #000,
+        0px 2px 4px rgba(0,0,0,0.8); /* 그림자를 진하게 주어 유튜브 영상 위에서 잘 보이도록 함 */
     display: block;
     text-align: center;
-    line-height: 1.2;
-    margin-top: 2px;
+    line-height: 1.3;
+    margin-top: 4px; /* 본 자막과의 간격 살짝 넓힘 */
+    font-weight: 500;
+    letter-spacing: 0.5px;
+}
+
+/* 추가 스타일: 유튜브 환경에서는 z-index 등 조정이 필요할 수 있음 */
+.ytp-caption-segment {
+    position: relative; /* 자막 세그먼트 안에 발음이 올바르게 위치하도록 함 */
 }
