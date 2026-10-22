@@ -1,8 +1,0 @@
-/* Conservative mobile experiment. Do NOT guess private class selectors of third-party sites.
-   This intentionally changes only scroll and touch ergonomics on allowed Google content origins.
-   It does not bypass unsupported editing or authentication requirements. */
-@media (max-width: 800px) {
-  html { overscroll-behavior-y: contain; }
-  button, [role="button"], input, textarea { touch-action: manipulation; }
-  [role="dialog"] { max-width: 100vw; }
-}
