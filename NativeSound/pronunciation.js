@@ -25,10 +25,6 @@ function fallbackPronunciation(word) {
     const lowerWord = word.toLowerCase();
 
     // Very simple heuristic: try to group consonants and vowels roughly
-    // For a real production app, this would be a much more complex engine or ML model.
-    // Here we just ensure we return SOMETHING in Korean so the core problem is fixed.
-
-    // Simple direct character mapping for the POC
     for (let i = 0; i < lowerWord.length; i++) {
         const char = lowerWord[i];
         if (alphabetToHangul[char]) {
@@ -36,7 +32,6 @@ function fallbackPronunciation(word) {
         }
     }
 
-    // If we still can't map it, return the original word
     return result || word;
 }
 
@@ -45,12 +40,11 @@ function phonemesToKorean(phonemeStr) {
     const phonemes = phonemeStr.split(' ');
 
     return phonemes.map(p => {
-        const basePhoneme = p.replace(/[0-9]/g, ''); // Remove stress markers
+        const basePhoneme = p.replace(/[0-9]/g, '');
         return arpabetToHangul[basePhoneme] || "";
-    }).join(''); // Join without hyphens for better readability
+    }).join('');
 }
 
-// Pre-mapped Korean approximations for words based on CMUdict
 const koreanApproximations = {
     "ANGER": "엔절",
     "HELLO": "헬로우",
@@ -76,7 +70,6 @@ const koreanApproximations = {
     "MORNING": "모닝"
 };
 
-// Conversational phrases (연음 - liaison)
 const conversationalMapping = {
     "WANT TO": "워너",
     "LET IT": "레릿",
@@ -96,7 +89,6 @@ function getPronunciationForWord(word, mode) {
         } else if (typeof CMUDict !== 'undefined' && CMUDict[cleanWord]) {
             return phonemesToKorean(CMUDict[cleanWord]);
         } else {
-            // Fix applied: Use fallback instead of returning English text
             return fallbackPronunciation(cleanWord);
         }
     }
@@ -110,17 +102,13 @@ function getPronunciationForSentence(sentence, mode) {
     let pronunciationResult = [];
 
     if (mode === 'conversation') {
-        // 1. Try to find and replace conversational phrases first
         for (const [phrase, pronunciation] of Object.entries(conversationalMapping)) {
-            // Case insensitive replace for whole phrases
             const regex = new RegExp(`\\b${phrase}\\b`, 'gi');
             processedSentence = processedSentence.replace(regex, pronunciation);
         }
 
-        // 2. Process remaining words
         const words = processedSentence.split(/\s+/);
         for (let word of words) {
-            // If it's already converted to Korean (from conversationalMapping), keep it
             if (/[가-힣]/.test(word)) {
                 pronunciationResult.push(word);
             } else {
@@ -135,7 +123,6 @@ function getPronunciationForSentence(sentence, mode) {
                 if (p === cleanWord || p === "") {
                      pronunciationResult.push(word);
                 } else {
-                     // Preserve punctuation
                      const punctuationMatches = word.match(/^([^A-Za-z']*)[A-Za-z']+([^A-Za-z']*)$/);
                      let prefix = "", suffix = "";
                      if(punctuationMatches) {
@@ -149,7 +136,6 @@ function getPronunciationForSentence(sentence, mode) {
         return pronunciationResult.join(' ');
 
     } else {
-        // Word mode: translate word by word
         const words = sentence.split(/\s+/);
         for (let word of words) {
             const cleanWord = word.toUpperCase().replace(/[^A-Z']/g, '');
@@ -160,11 +146,9 @@ function getPronunciationForSentence(sentence, mode) {
 
             const p = getPronunciationForWord(word, 'word');
 
-            // If not found in dict, just keep the original word or punctuation
             if (p === cleanWord || p === "") {
                  pronunciationResult.push(word);
             } else {
-                 // Preserve punctuation
                  const punctuationMatches = word.match(/^([^A-Za-z']*)[A-Za-z']+([^A-Za-z']*)$/);
                  let prefix = "", suffix = "";
                  if(punctuationMatches) {

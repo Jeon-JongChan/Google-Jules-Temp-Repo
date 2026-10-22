@@ -61,10 +61,8 @@ function processCaptionNode(node) {
 
     // Source language check
     if (sourceLang === 'en') {
-        // If strict English is selected, verify it contains mostly English characters
         if (!/[a-zA-Z]/.test(originalText)) return;
     } else {
-        // Auto mode: proceed if it has English letters, but we might want to be more lenient
         if (!/[a-zA-Z]/.test(originalText)) return;
     }
 
