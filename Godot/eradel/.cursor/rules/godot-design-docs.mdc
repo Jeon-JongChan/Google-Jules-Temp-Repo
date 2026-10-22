@@ -1,0 +1,11 @@
+---
+description: 기획 문서 참고 — 기능 구현 전 docs/design 확인
+globs: docs/design/**
+alwaysApply: false
+---
+
+# 기획 문서
+
+- 기획·게임플레이·시스템 구현 요청 시 `docs/design/` 문서를 **먼저** 읽는다
+- 기획과 코드가 충돌하면 사용자에게 확인한다 (clarify-before-act)
+- 수치·이름·플로우는 기획 문서를 우선하되, 엔진 제약이 있으면 대안을 제시한다

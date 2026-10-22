@@ -1,0 +1,35 @@
+---
+description: Eradel 씬·리소스·프로젝트 구조 규칙
+globs: "**/*.{tscn,tres,gdshader,godot}"
+alwaysApply: false
+---
+
+# 씬·리소스 규칙
+
+## 디렉터리 (권장)
+
+```
+docs/design/  # 기획 문서 (GDD, 시스템·레벨 기획) — 개발 시 우선 참고
+scenes/       # .tscn (world/, ui/, entities/ 등으로 세분화)
+scripts/      # 씬에 안 붙는 공용 .gd
+resources/    # .tres, 데이터
+assets/       # 아트·오디오·폰트 (import 설정 유지)
+```
+
+## 씬 설계
+
+- **재사용 단위 = 씬** — 인스펙터에서 조립 가능한 최소 기능 단위
+- 루트 노드 타입은 역할과 일치 (`CharacterBody3D`, `Area3D`, `Control` 등)
+- 씬마다 **그룹**·**레이어/마스크**를 인스펙터에 명시 (코드 하드코딩 최소화)
+
+## 이 프로젝트 설정
+
+- 엔진: Godot **4.6**, 3D 물리: **Jolt**
+- 렌더: `gl_compatibility` — 셰이더·후처리는 호환성 고려
+
+## 에이전트 작업 시
+
+- 새 기능: 기존 씬/노드 구조 먼저 확인 후 확장
+- `.tscn` 변경은 **필요한 노드·속성만** — unrelated 노드 재배치 금지
+- `project.godot`의 `autoload`, `input`, `layer_names` 변경은 영향 범위 설명 후 진행
+- 씬 전환·진입점: `docs/overview.md` (규칙 `scene-flow.mdc` 참고)

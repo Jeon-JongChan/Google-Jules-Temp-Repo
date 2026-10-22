@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>영지의 군주 — 던전 결과 화면 와이어프레임 v0.1</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+
+:root {
+  --bg: #0e0c08;
+  --bg2: #16130d;
+  --bg3: #1e1a11;
+  --border: #3a3020;
+  --border2: #5a4a2a;
+  --gold: #c9a84c;
+  --gold2: #f0c85a;
+  --red: #c04040;
+  --green: #3a7a50;
+  --blue: #3a6a9a;
+  --purple: #6a5aaa;
+  --text: #e8dcc8;
+  --text2: #a09070;
+  --text3: #6a5a40;
+  --white: #f5f0e8;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Noto Sans KR', sans-serif;
+  min-height: 100vh;
+}
+
+/* ── 네비게이션 ── */
+.nav {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(14,12,8,0.95);
+  border-bottom: 1px solid var(--border);
+  padding: 0 32px;
+  display: flex; align-items: center;
+  backdrop-filter: blur(8px);
+}
+.nav-title {
+  font-family: 'Nanum Myeongjo', serif;
+  font-size: 14px; color: var(--gold);
+  padding: 14px 32px 14px 0;
+  margin-right: 32px;
+  border-right: 1px solid var(--border);
+  white-space: nowrap;
+}
+.nav-tabs { display: flex; }
+.nav-tab {
+  padding: 14px 20px; font-size: 12px;
+  color: var(--text2); cursor: pointer;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap; transition: all .2s;
+  background: none; border-top: none; border-left: none; border-right: none;
+}
+.nav-tab:hover { color: var(--text); }
+.nav-tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+
+/* ── 섹션 ── */
+.section { display: none; padding: 48px 40px; max-width: 1200px; margin: 0 auto; }
+.section.active { display: block; }
+.section-header { margin-bottom: 40px; }
+.section-tag { font-size: 10px; color: var(--gold); letter-spacing: .2em; text-transform: uppercase; margin-bottom: 8px; }
+.section-title { font-family: 'Nanum Myeongjo', serif; font-size: 32px; color: var(--white); margin-bottom: 8px; }
+.section-sub { font-size: 13px; color: var(--text2); font-style: italic; }
+
+/* ── 카드 ── */
+.wf-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 12px; overflow: hidden; margin-bottom: 24px;
+}
+.wf-card-header {
+  padding: 14px 18px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.wf-card-title { font-size: 13px; font-weight: 500; color: var(--white); }
+.wf-card-badge {
+  font-size: 9px; padding: 2px 8px; border-radius: 10px;
+  background: #1a2a1e; border: 1px solid var(--green); color: #7fd4a0;
+}
+.wf-card-badge.pending {
+  background: var(--bg3); border-color: var(--border2); color: var(--text2);
+}
+.wf-preview { padding: 16px; background: #f5f0e8; }
+
+/* ── 미리보기 공통 ── */
+.prev-topbar {
+  background: #fff; border-bottom: 1px solid #e0d8cc;
+  padding: 8px 12px; display: flex; align-items: center; justify-content: space-between;
+}
+.prev-title { font-size: 12px; font-weight: 500; color: #2d2d2d; }
+.prev-chips { display: flex; gap: 5px; }
+.prev-chip {
+  font-size: 9px; padding: 2px 7px; border-radius: 10px;
+  border: 1px solid #e0d8cc; color: #888; background: #f5f0e8;
+}
+.prev-chip.gold { border-color: #BA7517; color: #633806; background: #FAEEDA; }
+.prev-label {
+  font-size: 8px; color: #aaa; text-transform: uppercase;
+  letter-spacing: .05em; margin-bottom: 4px; font-weight: 500;
+}
+
+/* ── 결과 화면 공통 ── */
+.result-wrap { font-family: 'Noto Sans KR', sans-serif; }
+
+/* 상단 배너 */
+.result-banner {
+  padding: 20px 16px 16px;
+  display: flex; flex-direction: column; align-items: center;
+  position: relative; text-align: center;
+}
+.result-banner.clear { background: linear-gradient(180deg, #0d1f12 0%, #f5f0e8 100%); }
+.result-banner.retreat { background: linear-gradient(180deg, #1a100a 0%, #f5f0e8 100%); }
+.result-banner.wipe { background: linear-gradient(180deg, #1a0808 0%, #f5f0e8 100%); }
+
+.result-state-label {
+  font-size: 9px; letter-spacing: .2em; text-transform: uppercase;
+  padding: 2px 10px; border-radius: 10px; margin-bottom: 6px;
+}
+.result-state-label.clear { background: #1a2a1e; border: 1px solid #3a7a50; color: #7fd4a0; }
+.result-state-label.retreat { background: #2a1a08; border: 1px solid #BA7517; color: #d4a060; }
+.result-state-label.wipe { background: #2a0808; border: 1px solid #8a2020; color: #e06060; }
+
+.result-title-big {
+  font-family: 'Nanum Myeongjo', serif;
+  font-size: 22px; font-weight: 800; margin-bottom: 4px;
+}
+.result-title-big.clear { color: #0F6E56; }
+.result-title-big.retreat { color: #854F0B; }
+.result-title-big.wipe { color: #A32D2D; }
+
+.result-dungeon-name { font-size: 10px; color: #888; font-style: italic; margin-bottom: 8px; }
+.result-lore {
+  font-size: 9px; color: #999; font-style: italic;
+  max-width: 280px; line-height: 1.6; margin: 0 auto;
+}
+
+/* 본문 그리드 */
+.result-body { background: #f5f0e8; display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+.result-col { padding: 10px 12px; border-right: 1px solid #e0d8cc; }
+.result-col:last-child { border-right: none; }
+
+/* 파티 카드 */
+.party-member {
+  display: flex; align-items: center; gap: 6px;
+  background: #fff; border: 1px solid #e0d8cc; border-radius: 4px;
+  padding: 5px 7px; margin-bottom: 4px;
+}
+.party-member.dead { opacity: .5; background: #fff8f8; border-color: #A32D2D; }
+.party-member.missing { background: #FAEEDA; border-color: #BA7517; }
+.party-avatar { width: 18px; height: 18px; border-radius: 50%; background: #ddd; flex-shrink: 0; }
+.party-info { flex: 1; }
+.party-name { font-size: 9px; font-weight: 500; color: #2d2d2d; }
+.party-hp-bar { height: 2px; background: #eee; border-radius: 1px; overflow: hidden; margin-top: 2px; }
+.party-penalty {
+  font-size: 7px; padding: 1px 4px; border-radius: 3px;
+  margin-top: 2px; display: inline-block;
+}
+.party-penalty.severe { background: #FCEBEB; color: #791F1F; border: 1px solid #A32D2D; }
+.party-penalty.mild { background: #FAEEDA; color: #633806; border: 1px solid #BA7517; }
+.party-state {
+  font-size: 8px; padding: 1px 6px; border-radius: 8px;
+  white-space: nowrap; flex-shrink: 0;
+}
+
+/* 획득 자원 */
+.loot-row {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 9px; padding: 3px 0; border-bottom: 1px solid #f0ebe0;
+}
+.loot-row:last-child { border-bottom: none; }
+.loot-name { color: #666; }
+.loot-val { font-weight: 500; color: #2d2d2d; }
+.loot-val.zero { color: #aaa; text-decoration: line-through; }
+.loot-val.partial { color: #854F0B; }
+.loot-val.positive { color: #085041; }
+
+/* 영지 파문 */
+.ripple-item {
+  display: flex; align-items: flex-start; gap: 6px;
+  padding: 5px 7px; border-radius: 4px; margin-bottom: 4px;
+  font-size: 8px; border: 1px solid;
+}
+.ripple-item.bad { background: #FCEBEB; border-color: #A32D2D; }
+.ripple-item.warn { background: #FAEEDA; border-color: #BA7517; }
+.ripple-item.good { background: #E1F5EE; border-color: #0F6E56; }
+.ripple-item.neutral { background: #f5f0e8; border-color: #e0d8cc; }
+.ripple-icon { flex-shrink: 0; margin-top: 1px; }
+.ripple-text { color: #2d2d2d; line-height: 1.5; }
+.ripple-delay { font-size: 7px; color: #aaa; margin-top: 1px; }
+
+/* 실종자 박스 */
+.missing-box {
+  background: #FFF8EC; border: 1px solid #BA7517;
+  border-radius: 4px; padding: 8px 10px; margin-bottom: 6px;
+}
+.missing-header {
+  font-size: 9px; font-weight: 500; color: #633806;
+  margin-bottom: 5px; display: flex; align-items: center; gap: 4px;
+}
+.missing-member {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 0; border-bottom: 1px solid #f0e0c0;
+}
+.missing-member:last-child { border-bottom: none; }
+.missing-chance {
+  font-size: 8px; margin-left: auto;
+  color: #854F0B;
+}
+
+/* 스트레스 변화 */
+.stress-change {
+  background: #fff; border: 1px solid #e0d8cc;
+  border-radius: 4px; padding: 7px 9px; margin-bottom: 6px;
+}
+.stress-row {
+  display: flex; justify-content: space-between;
+  font-size: 9px; padding: 2px 0;
+}
+
+/* 하단 버튼 */
+.result-footer {
+  background: #fff; border-top: 1px solid #e0d8cc;
+  padding: 8px 12px; display: flex; gap: 8px; align-items: center;
+}
+.btn-primary {
+  flex: 1; padding: 7px; border-radius: 4px; text-align: center;
+  font-size: 10px; font-weight: 500; cursor: pointer;
+}
+.btn-primary.green { border: 1px solid #0F6E56; background: #E1F5EE; color: #085041; }
+.btn-primary.gold { border: 1px solid #BA7517; background: #FAEEDA; color: #633806; }
+.btn-primary.red { border: 1px solid #A32D2D; background: #FCEBEB; color: #791F1F; }
+.btn-secondary {
+  padding: 7px 14px; border-radius: 4px; font-size: 10px;
+  border: 1px solid #e0d8cc; background: #f5f0e8; color: #666; cursor: pointer;
+}
+
+/* 개발자 노트 */
+.dev-note {
+  margin-top: 20px; background: var(--bg2);
+  border: 1px solid var(--border); border-radius: 8px; padding: 16px;
+}
+.dev-note-title { font-size: 11px; color: var(--gold); margin-bottom: 8px; font-weight: 500; }
+.dev-note-body { font-size: 12px; color: var(--text2); line-height: 1.8; }
+
+/* 분기 비교표 */
+.compare-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+.compare-table th {
+  text-align: left; font-size: 11px; color: var(--text2);
+  padding: 8px 12px; border-bottom: 1px solid var(--border); font-weight: 500;
+}
+.compare-table td { font-size: 12px; color: var(--text); padding: 8px 12px; border-bottom: 1px solid var(--border); }
+.compare-table tr:hover td { background: var(--bg3); }
+
+.badge { font-size: 10px; padding: 2px 8px; border-radius: 10px; }
+.badge-clear { background: #1a2a1e; border: 1px solid var(--green); color: #7fd4a0; }
+.badge-retreat { background: #2a1a08; border: 1px solid #BA7517; color: #d4a060; }
+.badge-wipe { background: #2a0808; border: 1px solid #8a2020; color: #e06060; }
+
+.divider { height: 1px; background: var(--border); margin: 32px 0; }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-title">영지의 군주 UI 설계서 v0.1 추가</div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="show('overview')">분기 개요</button>
+    <button class="nav-tab" onclick="show('clear')">클리어</button>
+    <button class="nav-tab" onclick="show('retreat')">철수</button>
+    <button class="nav-tab" onclick="show('wipe')">전멸</button>
+  </div>
+</nav>
+
+<!-- ══ 분기 개요 ══ -->
+<div class="section active" id="sec-overview">
+  <div class="section-header">
+    <div class="section-tag">Wireframe 07 — Screen Flow</div>
+    <div class="section-title">던전 결과 화면</div>
+    <div class="section-sub">클리어 / 철수 / 전멸 — 같은 구조, 다른 상태</div>
+  </div>
+
+  <div class="wf-card">
+    <div class="wf-card-header">
+      <span class="wf-card-title">결과 화면 구조 개요</span>
+      <span class="wf-card-badge">완료</span>
+    </div>
+    <div style="padding: 20px; background: var(--bg3);">
+      <div style="font-size: 11px; color: var(--text2); margin-bottom: 16px; line-height: 1.8;">
+        세 가지 결과 상태가 <strong style="color:var(--gold)">동일한 레이아웃</strong>을 공유하며, 색상·텍스트·표시 항목만 달라집니다.<br>
+        화면은 <strong style="color:var(--gold)">5개 영역</strong>으로 구성됩니다.
+      </div>
+
+      <!-- 구조도 -->
+      <div style="display: grid; grid-template-columns: 1fr; gap: 2px; max-width: 500px; margin: 0 auto 24px;">
+        <div style="background: #1a2a1e; border: 1px solid #3a7a50; border-radius: 6px 6px 0 0; padding: 8px 12px; text-align: center;">
+          <div style="font-size: 10px; color: #7fd4a0; font-weight: 500;">① 결과 배너</div>
+          <div style="font-size: 9px; color: var(--text3);">상태 라벨 / 던전명 / 로어 텍스트 — 색상으로 상태 구분</div>
+        </div>
+        <div style="background: var(--bg2); border: 1px solid var(--border); padding: 8px 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 2px; text-align: center;">
+          <div>
+            <div style="font-size: 10px; color: var(--gold); font-weight: 500;">② 파티 현황</div>
+            <div style="font-size: 9px; color: var(--text3);">생존 / 사망 / 실종 / 새 패널티</div>
+          </div>
+          <div>
+            <div style="font-size: 10px; color: var(--gold); font-weight: 500;">③ 획득 자원</div>
+            <div style="font-size: 9px; color: var(--text3);">금화 / 마나석 / 소모품 잔량</div>
+          </div>
+        </div>
+        <div style="background: var(--bg2); border: 1px solid var(--border); padding: 8px 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 2px; text-align: center;">
+          <div>
+            <div style="font-size: 10px; color: var(--gold); font-weight: 500;">④ 실종자 현황</div>
+            <div style="font-size: 9px; color: var(--text3);">철수 시만 표시 / 판정 대기</div>
+          </div>
+          <div>
+            <div style="font-size: 10px; color: var(--gold); font-weight: 500;">⑤ 영지 파문</div>
+            <div style="font-size: 9px; color: var(--text3);">스트레스 / 지연 결과 예고</div>
+          </div>
+        </div>
+        <div style="background: #1e1a10; border: 1px solid var(--border); border-radius: 0 0 6px 6px; padding: 8px 12px; text-align: center;">
+          <div style="font-size: 10px; color: var(--text2); font-weight: 500;">⑥ 하단 버튼</div>
+          <div style="font-size: 9px; color: var(--text3);">일지 보기 / 영지로 귀환</div>
+        </div>
+      </div>
+
+      <table class="compare-table">
+        <tr>
+          <th>항목</th>
+          <th><span class="badge badge-clear">클리어</span></th>
+          <th><span class="badge badge-retreat">철수</span></th>
+          <th><span class="badge badge-wipe">전멸</span></th>
+        </tr>
+        <tr>
+          <td>배너 색상</td>
+          <td style="color:#7fd4a0">녹색 계열</td>
+          <td style="color:#d4a060">황금 계열</td>
+          <td style="color:#e06060">적색 계열</td>
+        </tr>
+        <tr>
+          <td>파티 현황</td>
+          <td>생존자 + 새 패널티</td>
+          <td>생존자 + 실종자 분리</td>
+          <td>전원 사망 표시</td>
+        </tr>
+        <tr>
+          <td>금화</td>
+          <td>전량 획득</td>
+          <td>획득분의 30%</td>
+          <td>전량 소실</td>
+        </tr>
+        <tr>
+          <td>소지 아이템</td>
+          <td>전량 획득</td>
+          <td>전량 소실</td>
+          <td>전량 소실</td>
+        </tr>
+        <tr>
+          <td>마나석</td>
+          <td>전량 획득</td>
+          <td>전량 소실</td>
+          <td>전량 소실</td>
+        </tr>
+        <tr>
+          <td>실종자 박스</td>
+          <td>미표시</td>
+          <td><strong style="color:var(--gold)">표시 (핵심)</strong></td>
+          <td>미표시</td>
+        </tr>
+        <tr>
+          <td>영구 스트레스</td>
+          <td>없음</td>
+          <td>사망 확정 시 발생</td>
+          <td>+20 추가 즉시</td>
+        </tr>
+        <tr>
+          <td>해소 스트레스</td>
+          <td>-8</td>
+          <td>+5 (미정)</td>
+          <td>+10</td>
+        </tr>
+        <tr>
+          <td>귀환 버튼 색상</td>
+          <td>녹색</td>
+          <td>황금</td>
+          <td>적색</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 클리어 ══ -->
+<div class="section" id="sec-clear">
+  <div class="section-header">
+    <div class="section-tag">Wireframe 07-A</div>
+    <div class="section-title">던전 결과 — 클리어</div>
+    <div class="section-sub">보스 처치 / 전리품 전량 획득 / 스트레스 해소</div>
+  </div>
+
+  <div class="wf-card">
+    <div class="wf-card-header">
+      <span class="wf-card-title">클리어 결과 화면</span>
+      <span class="wf-card-badge">완료</span>
+    </div>
+    <div class="wf-preview" style="padding: 0;">
+      <div class="result-wrap">
+
+        <!-- ① 배너 -->
+        <div class="result-banner clear">
+          <div class="result-state-label clear">던전 클리어</div>
+          <div class="result-title-big clear">귀환</div>
+          <div class="result-dungeon-name">어둠의 균열 던전 — 7일차</div>
+          <div class="result-lore">"살아 돌아온 자만이 다음을 이야기할 수 있다."</div>
+        </div>
+
+        <!-- ② ③ 본문 -->
+        <div class="result-body">
+
+          <!-- 파티 현황 -->
+          <div class="result-col">
+            <div class="prev-label">파티 현황</div>
+
+            <div class="party-member">
+              <div class="party-avatar"></div>
+              <div class="party-info">
+                <div class="party-name">아이언 핸드</div>
+                <div class="party-hp-bar"><div style="width:78%;height:100%;background:#639922"></div></div>
+              </div>
+              <span class="party-state" style="background:#E1F5EE;border:1px solid #0F6E56;color:#085041">생존</span>
+            </div>
+
+            <div class="party-member">
+              <div class="party-avatar"></div>
+              <div class="party-info">
+                <div class="party-name">붉은 룬</div>
+                <div class="party-hp-bar"><div style="width:45%;height:100%;background:#BA7517"></div></div>
+                <span class="party-penalty severe">마력 역류</span>
+              </div>
+              <span class="party-state" style="background:#E1F5EE;border:1px solid #0F6E56;color:#085041">생존</span>
+            </div>
+
+            <div class="party-member">
+              <div class="party-avatar"></div>
+              <div class="party-info">
+                <div class="party-name">그림자 발소리</div>
+                <div class="party-hp-bar"><div style="width:60%;height:100%;background:#639922"></div></div>
+                <span class="party-penalty mild">극도의 피로</span>
+              </div>
+              <span class="party-state" style="background:#E1F5EE;border:1px solid #0F6E56;color:#085041">생존</span>
+            </div>
+
+            <div class="party-member dead">
+              <div class="party-avatar" style="background:#e0d0d0"></div>
+              <div class="party-info">
+                <div class="party-name">십자가</div>
+                <div style="font-size:7px;color:#A32D2D;margin-top:2px">던전 내 전사</div>
+              </div>
+              <span class="party-state" style="background:#FCEBEB;border:1px solid #A32D2D;color:#791F1F">사망</span>
+            </div>
+          </div>
+
+          <!-- 획득 자원 -->
+          <div class="result-col">
+            <div class="prev-label">획득 자원</div>
+            <div style="background:#fff;border:1px solid #e0d8cc;border-radius:4px;padding:7px;margin-bottom:6px">
+              <div class="loot-row"><span class="loot-name">금화</span><span class="loot-val positive">+180</span></div>
+              <div class="loot-row"><span class="loot-name">마나석</span><span class="loot-val positive">+2</span></div>
+              <div class="loot-row"><span class="loot-name">치료약</span><span class="loot-val positive">잔량 1개</span></div>
+              <div class="loot-row"><span class="loot-name">횃불</span><span class="loot-val zero">0개 (소진)</span></div>
+            </div>
+
+            <div class="prev-label">던전 변화</div>
+            <div style="background:#fff;border:1px solid #e0d8cc;border-radius:4px;padding:7px;">
+              <div class="loot-row"><span class="loot-name">보스 처치</span><span class="loot-val positive">활성도 -30%</span></div>
+              <div class="loot-row"><span class="loot-name">재생성 예상</span><span class="loot-val" style="color:#666">약 5턴 후</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ⑤ 영지 파문 -->
+        <div style="background:#f5f0e8;padding:10px 12px;border-top:1px solid #e0d8cc;">
+          <div class="prev-label">영지 파문</div>
+
+          <!-- 스트레스 -->
+          <div class="stress-change">
+            <div class="stress-row"><span style="color:#666">해소 가능 스트레스</span><span style="color:#085041;font-weight:500">-8 (던전 클리어)</span></div>
+            <div class="stress-row"><span style="color:#666">영구 스트레스</span><span style="color:#A32D2D;font-weight:500">+6 (십자가 사망 · Lv.4)</span></div>
+            <div style="height:1px;background:#e0d8cc;margin:4px 0"></div>
+            <div class="stress-row"><span style="color:#666;font-weight:500">현재 스트레스</span><span style="color:#854F0B;font-weight:500">36 / 100</span></div>
+          </div>
+
+          <!-- 지연 결과 예고 -->
+          <div class="ripple-item good">
+            <div class="ripple-icon" style="color:#0F6E56">✦</div>
+            <div>
+              <div class="ripple-text" style="color:#085041">주민들이 귀환 소식에 안도했다 — 민심 +5</div>
+              <div class="ripple-delay">즉시 반영</div>
+            </div>
+          </div>
+          <div class="ripple-item warn">
+            <div class="ripple-icon" style="color:#BA7517">◈</div>
+            <div>
+              <div class="ripple-text">"십자가가 돌아오지 않았다" — 소문 발생 예고</div>
+              <div class="ripple-delay">2턴 후 길드에 도착</div>
+            </div>
+          </div>
+          <div class="ripple-item neutral">
+            <div class="ripple-icon" style="color:#aaa">○</div>
+            <div>
+              <div class="ripple-text">부상 용병 치료소 자동 입원 안내</div>
+              <div class="ripple-delay">귀환 후 치료소에서 확인</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ⑥ 하단 버튼 -->
+        <div class="result-footer">
+          <button class="btn-secondary">일지에 기록 ↗</button>
+          <button class="btn-primary green">영지로 귀환 ↗</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div class="dev-note">
+    <div class="dev-note-title">개발자 포인트 — 클리어</div>
+    <div class="dev-note-body">
+      • 사망자 발생 시 영구 스트레스 즉시 표시 (유예 없음)<br>
+      • 지연 결과(소문·민심)는 예고만 — 실제 반영은 지정 턴에<br>
+      • 던전 활성도 감소 → 영지 메인 화면 마커 색상 갱신<br>
+      • 부상 용병은 결과 화면에서 치료소 입원 바로가기 제공 검토
+    </div>
+  </div>
+</div>
+
+<!-- ══ 철수 ══ -->
+<div class="section" id="sec-retreat">
+  <div class="section-header">
+    <div class="section-tag">Wireframe 07-B</div>
+    <div class="section-title">던전 결과 — 철수</div>
+    <div class="section-sub">실종자 랜덤 판정 / 소지품 전소 / 금화 30% 회수</div>
+  </div>
+
+  <div class="wf-card">
+    <div class="wf-card-header">
+      <span class="wf-card-title">철수 결과 화면</span>
+      <span class="wf-card-badge">완료</span>
+    </div>
+    <div class="wf-preview" style="padding: 0;">
+      <div class="result-wrap">
+
+        <!-- ① 배너 -->
+        <div class="result-banner retreat">
+          <div class="result-state-label retreat">철수</div>
+          <div class="result-title-big retreat">후퇴</div>
+          <div class="result-dungeon-name">어둠의 균열 던전 — 7일차</div>
+          <div class="result-lore">"후퇴의 대가는 언제나 타인이 치른다. 그것이 전장의 법칙이었다."</div>
+        </div>
+
+        <!-- ② ③ 본문 -->
+        <div class="result-body">
+
+          <!-- 파티 현황 -->
+          <div class="result-col">
+            <div class="prev-label">귀환 파티</div>
+
+            <div class="party-member">
+              <div class="party-avatar"></div>
+              <div class="party-info">
+                <div class="party-name">아이언 핸드</div>
+                <div class="party-hp-bar"><div style="width:30%;height:100%;background:#A32D2D"></div></div>
+                <span class="party-penalty severe">골절</span>
+              </div>
+              <span class="party-state" style="background:#E1F5EE;border:1px solid #0F6E56;color:#085041">생존</span>
+            </div>
+
+            <div class="party-member">
+              <div class="party-avatar"></div>
+              <div class="party-info">
+                <div class="party-name">그림자 발소리</div>
+                <div class="party-hp-bar"><div style="width:55%;height:100%;background:#639922"></div></div>
+              </div>
+              <span class="party-state" style="background:#E1F5EE;border:1px solid #0F6E56;color:#085041">생존</span>
+            </div>
+
+            <div class="prev-label" style="margin-top: 8px;">실종 (랜덤 선정)</div>
+
+            <!-- 실종자 박스 -->
+            <div class="missing-box">
+              <div class="missing-header">
+                <span style="color:#BA7517">⚠</span> 던전에 남겨진 동료
+              </div>
+              <div class="missing-member">
+                <div class="party-avatar"></div>
+                <div style="flex:1">
+                  <div style="font-size:9px;font-weight:500;color:#2d2d2d">붉은 룬</div>
+                  <div style="font-size:7px;color:#aaa">룬마법사 Lv.3</div>
+                </div>
+                <div class="missing-chance">
+                  <div style="color:#085041">귀환 20%</div>
+                  <div style="color:#A32D2D">사망 80%</div>
+                </div>
+              </div>
+              <div style="font-size:8px;color:#854F0B;margin-top:4px;font-style:italic">
+                3턴 내 결론 — 영구 스트레스 유예 중
+              </div>
+            </div>
+          </div>
+
+          <!-- 획득 자원 -->
+          <div class="result-col">
+            <div class="prev-label">회수 자원</div>
+            <div style="background:#fff;border:1px solid #e0d8cc;border-radius:4px;padding:7px;margin-bottom:6px">
+              <div class="loot-row">
+                <span class="loot-name">금화</span>
+                <div style="text-align:right">
+                  <div class="loot-val partial">+54</div>
+                  <div style="font-size:7px;color:#aaa">획득분 180의 30%</div>
+                </div>
+              </div>
+              <div class="loot-row"><span class="loot-name">마나석</span><span class="loot-val zero">소실</span></div>
+              <div class="loot-row"><span class="loot-name">소지 아이템</span><span class="loot-val zero">전량 소실</span></div>
+              <div class="loot-row"><span class="loot-name">장착 장비</span><span class="loot-val positive">유지</span></div>
+            </div>
+
+            <div style="background:#FFF8EC;border:1px solid #BA7517;border-radius:4px;padding:7px">
+              <div style="font-size:8px;color:#633806;line-height:1.6;font-style:italic">
+                "살아 돌아온 것만으로도 충분하다고,<br>그들은 서로를 설득했다.<br>떨어뜨린 금화는 세지 않기로 했다."
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ④ 실종자 판정 안내 -->
+        <div style="background:#FFF8EC;border-top:1px solid #BA7517;border-bottom:1px solid #BA7517;padding:8px 12px;">
+          <div class="prev-label" style="color:#854F0B">실종자 판정 안내</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">
+            <div style="background:#fff;border:1px solid #BA7517;border-radius:4px;padding:6px;text-align:center">
+              <div style="font-size:8px;color:#aaa;margin-bottom:2px">1턴 후</div>
+              <div style="font-size:9px;color:#2d2d2d">판정 진행</div>
+              <div style="font-size:7px;color:#854F0B">복귀 시 중증 ×1</div>
+            </div>
+            <div style="background:#fff;border:1px solid #BA7517;border-radius:4px;padding:6px;text-align:center">
+              <div style="font-size:8px;color:#aaa;margin-bottom:2px">2~3턴 후</div>
+              <div style="font-size:9px;color:#2d2d2d">판정 진행</div>
+              <div style="font-size:7px;color:#854F0B">복귀 시 중증 ×2</div>
+            </div>
+            <div style="background:#fff;border:1px solid #A32D2D;border-radius:4px;padding:6px;text-align:center">
+              <div style="font-size:8px;color:#aaa;margin-bottom:2px">3턴 미복귀</div>
+              <div style="font-size:9px;color:#A32D2D;font-weight:500">사망 확정</div>
+              <div style="font-size:7px;color:#A32D2D">영구 스트레스 발생</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ⑤ 영지 파문 -->
+        <div style="background:#f5f0e8;padding:10px 12px;">
+          <div class="prev-label">영지 파문</div>
+
+          <div class="stress-change">
+            <div class="stress-row"><span style="color:#666">해소 스트레스</span><span style="color:#A32D2D;font-weight:500">+5 (철수)</span></div>
+            <div class="stress-row"><span style="color:#666">영구 스트레스</span><span style="color:#aaa">유예 중 (실종자 결론 후)</span></div>
+            <div style="height:1px;background:#e0d8cc;margin:4px 0"></div>
+            <div class="stress-row"><span style="color:#666;font-weight:500">현재 스트레스</span><span style="color:#854F0B;font-weight:500">43 / 100</span></div>
+          </div>
+
+          <div class="ripple-item warn">
+            <div class="ripple-icon" style="color:#BA7517">◈</div>
+            <div>
+              <div class="ripple-text">"용병들이 달아났다" — 소문 발생 예고</div>
+              <div class="ripple-delay">1턴 후 길드에 도착</div>
+            </div>
+          </div>
+          <div class="ripple-item bad">
+            <div class="ripple-icon" style="color:#A32D2D">✕</div>
+            <div>
+              <div class="ripple-text">던전 활성도 유지 — 방치 페널티 카운트 진행</div>
+              <div class="ripple-delay">즉시 반영</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ⑥ 하단 버튼 -->
+        <div class="result-footer">
+          <button class="btn-secondary">일지에 기록 ↗</button>
+          <button class="btn-primary gold">영지로 귀환 ↗</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div class="dev-note">
+    <div class="dev-note-title">개발자 포인트 — 철수</div>
+    <div class="dev-note-body">
+      • 실종자 박스: 영지 메인 용병 슬롯에도 "실종" 상태로 잠금 표시<br>
+      • 매 턴 시작 시 실종자 판정 자동 트리거 (판정 결과 팝업으로 표시)<br>
+      • 금화 계산: Math.floor(획득금화 × 0.3) — 소수점 버림<br>
+      • 영구 스트레스는 사망 확정 팝업 시점에 발생, 이 화면에선 유예 중 표기<br>
+      • 철수 조건 미달(생존자 수 부족) 시 던전 탐사 화면에서 버튼 비활성화
+    </div>
+  </div>
+</div>
+
+<!-- ══ 전멸 ══ -->
+<div class="section" id="sec-wipe">
+  <div class="section-header">
+    <div class="section-tag">Wireframe 07-C</div>
+    <div class="section-title">던전 결과 — 전멸</div>
+    <div class="section-sub">전원 사망 / 전량 소실 / 영구 스트레스 +20 추가</div>
+  </div>
+
+  <div class="wf-card">
+    <div class="wf-card-header">
+      <span class="wf-card-title">전멸 결과 화면</span>
+      <span class="wf-card-badge">완료</span>
+    </div>
+    <div class="wf-preview" style="padding: 0;">
+      <div class="result-wrap">
+
+        <!-- ① 배너 -->
+        <div class="result-banner wipe">
+          <div class="result-state-label wipe">전멸</div>
+          <div class="result-title-big wipe">몰살</div>
+          <div class="result-dungeon-name">어둠의 균열 던전 — 7일차</div>
+          <div class="result-lore">"영지는 그들을 기다렸다. 그러나 아무도 돌아오지 않았다."</div>
+        </div>
+
+        <!-- ② ③ 본문 -->
+        <div class="result-body">
+
+          <!-- 파티 현황 -->
+          <div class="result-col">
+            <div class="prev-label">파티 현황</div>
+
+            <div class="party-member dead">
+              <div class="party-avatar" style="background:#c0b0b0"></div>
+              <div class="party-info">
+                <div class="party-name">아이언 핸드</div>
+                <div style="font-size:7px;color:#A32D2D;margin-top:2px">전투 중 전사 · Lv.4</div>
+              </div>
+              <span class="party-state" style="background:#FCEBEB;border:1px solid #A32D2D;color:#791F1F">사망</span>
+            </div>
+
+            <div class="party-member dead">
+              <div class="party-avatar" style="background:#c0b0b0"></div>
+              <div class="party-info">
+                <div class="party-name">붉은 룬</div>
+                <div style="font-size:7px;color:#A32D2D;margin-top:2px">전투 중 전사 · Lv.3</div>
+              </div>
+              <span class="party-state" style="background:#FCEBEB;border:1px solid #A32D2D;color:#791F1F">사망</span>
+            </div>
+
+            <div class="party-member dead">
+              <div class="party-avatar" style="background:#c0b0b0"></div>
+              <div class="party-info">
+                <div class="party-name">그림자 발소리</div>
+                <div style="font-size:7px;color:#A32D2D;margin-top:2px">전투 중 전사 · Lv.5</div>
+              </div>
+              <span class="party-state" style="background:#FCEBEB;border:1px solid #A32D2D;color:#791F1F">사망</span>
+            </div>
+
+            <div class="party-member dead">
+              <div class="party-avatar" style="background:#c0b0b0"></div>
+              <div class="party-info">
+                <div class="party-name">십자가</div>
+                <div style="font-size:7px;color:#A32D2D;margin-top:2px">전투 중 전사 · Lv.2</div>
+              </div>
+              <span class="party-state" style="background:#FCEBEB;border:1px solid #A32D2D;color:#791F1F">사망</span>
+            </div>
+          </div>
+
+          <!-- 획득 자원 -->
+          <div class="result-col">
+            <div class="prev-label">전리품</div>
+            <div style="background:#fff8f8;border:1px solid #A32D2D;border-radius:4px;padding:7px;margin-bottom:6px">
+              <div class="loot-row"><span class="loot-name">금화</span><span class="loot-val zero">전량 소실</span></div>
+              <div class="loot-row"><span class="loot-name">마나석</span><span class="loot-val zero">전량 소실</span></div>
+              <div class="loot-row"><span class="loot-name">소지 아이템</span><span class="loot-val zero">전량 소실</span></div>
+              <div class="loot-row"><span class="loot-name">장착 장비</span><span class="loot-val zero">소실</span></div>
+            </div>
+
+            <div style="background:#fff;border:1px solid #e0d8cc;border-radius:4px;padding:7px">
+              <div class="prev-label">던전 변화</div>
+              <div class="loot-row"><span class="loot-name">활성도</span><span class="loot-val" style="color:#A32D2D">유지 (감소 없음)</span></div>
+              <div class="loot-row"><span class="loot-name">몬스터 강화</span><span class="loot-val" style="color:#A32D2D">+1단계</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ⑤ 영지 파문 -->
+        <div style="background:#fff8f8;padding:10px 12px;border-top:1px solid #A32D2D;">
+          <div class="prev-label" style="color:#A32D2D">영지 파문</div>
+
+          <div style="background:#fff;border:1px solid #A32D2D;border-radius:4px;padding:7px;margin-bottom:6px">
+            <div class="stress-row"><span style="color:#666">해소 스트레스</span><span style="color:#A32D2D;font-weight:500">+10 (던전 실패)</span></div>
+            <div class="stress-row"><span style="color:#666">영구 스트레스</span>
+              <div style="text-align:right">
+                <div style="font-size:9px;color:#A32D2D;font-weight:500">+37 (사망자 합산)</div>
+                <div style="font-size:7px;color:#aaa">+10+6+6+15 + 전멸 추가 +20</div>
+              </div>
+            </div>
+            <div style="height:1px;background:#e0d8cc;margin:4px 0"></div>
+            <div class="stress-row"><span style="color:#666;font-weight:500">현재 스트레스</span><span style="color:#A32D2D;font-weight:700;font-size:11px">85 / 100 ⚠</span></div>
+            <div style="height:4px;background:#eee;border-radius:2px;overflow:hidden;margin-top:4px">
+              <div style="width:85%;height:100%;background:#A32D2D;border-radius:2px"></div>
+            </div>
+          </div>
+
+          <div class="ripple-item bad">
+            <div class="ripple-icon" style="color:#A32D2D">✕</div>
+            <div>
+              <div class="ripple-text" style="color:#791F1F">"용병이 전멸했다" — 영지 전역에 소문 즉시 확산</div>
+              <div class="ripple-delay">즉시 반영 / 신규 용병 고용 비용 상승</div>
+            </div>
+          </div>
+          <div class="ripple-item bad">
+            <div class="ripple-icon" style="color:#A32D2D">✕</div>
+            <div>
+              <div class="ripple-text" style="color:#791F1F">민심 급락 — 주민 이탈 위험 증가</div>
+              <div class="ripple-delay">즉시 반영</div>
+            </div>
+          </div>
+          <div class="ripple-item bad">
+            <div class="ripple-icon" style="color:#A32D2D">✕</div>
+            <div>
+              <div class="ripple-text" style="color:#791F1F">던전 활성도 유지 → 다음 침공까지 카운트 감소 없음</div>
+              <div class="ripple-delay">즉시 반영</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ⑥ 하단 버튼 -->
+        <div class="result-footer">
+          <button class="btn-secondary">일지에 기록 ↗</button>
+          <button class="btn-primary red">영지로 귀환 ↗</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div class="dev-note">
+    <div class="dev-note-title">개발자 포인트 — 전멸</div>
+    <div class="dev-note-body">
+      • 영구 스트레스: 각 사망자 레벨별 수치 + 전멸 추가 +20 즉시 합산 표시<br>
+      • 스트레스 85+ 시 바 색상 전체 적색, 숫자 강조 (게임 오버 임박 경고)<br>
+      • 장착 장비 소실 여부 — 전멸 시 장착템도 소실로 확정 (기획서 미정 → 강경안 채택)<br>
+      • 몬스터 강화 +1단계: 다음 해당 던전 진입 시 적용<br>
+      • 귀환 버튼 클릭 전 "정말 돌아가시겠습니까?" 확인 없음 — 직접 영지로 복귀 (잔인하게)
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('sec-' + id).classList.add('active');
+  const map = { overview: 0, clear: 1, retreat: 2, wipe: 3 };
+  document.querySelectorAll('.nav-tab')[map[id]].classList.add('active');
+  window.scrollTo(0, 0);
+}
+</script>
+</body>
+</html>

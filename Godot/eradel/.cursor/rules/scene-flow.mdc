@@ -1,0 +1,30 @@
+---
+description: 씬 흐름 문서를 소스 오브 트루스로 유지
+globs: "**/{scenes,scripts}/**/*.{gd,tscn}"
+alwaysApply: false
+---
+
+# 씬 흐름 (`docs/overview.md`)
+
+씬 **추가·삭제·이름 변경·전환**을 건드리면 `docs/overview.md`를 **같은 작업에서** 갱신한다.
+
+## 해야 할 일
+
+1. `GameState`에 `SCENE_*` 상수 추가/수정 (경로 문자열 하드코딩 금지)
+2. `change_scene_to_file` 연결
+3. `docs/overview.md` 갱신:
+   - §2 상수 목록
+   - §3 Mermaid 흐름도
+   - §4 전환 표 (트리거 → 파일)
+   - §7~§8 요약·체크리스트
+4. API·시그널·파일 역할이 바뀌면 `docs/overview_detail.md`도 갱신
+
+## 금지
+
+- overview에 없는 새 화면 전환만 코드에 넣기
+- `res://scenes/...` 경로를 `GameState.SCENE_*` 밖으로 분산
+
+## 참고
+
+- 전환 지도: `docs/overview.md`
+- 역할·시그널·함수: `docs/overview_detail.md`

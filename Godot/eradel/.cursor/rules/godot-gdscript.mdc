@@ -1,0 +1,48 @@
+---
+description: Eradel Godot 4.6 GDScript 코딩 규칙
+globs: **/*.gd
+alwaysApply: false
+---
+
+# GDScript 규칙
+
+## 기본
+
+- Godot **4.6** API·문법 사용 (`@export`, `@onready`, `await`, typed GDScript)
+- 노드 조합 우선 — 깊은 상속보다 작은 씬·스크립트 조립
+- 노드 참조: `%UniqueName` 또는 `@export` — 런타임 `get_node()` 문자열 남발 금지
+- 형제/부모 직접 접근 대신 **시그널**로 통신
+
+## 네이밍
+
+| 대상 | 규칙 | 예 |
+|------|------|-----|
+| 클래스/씬 파일 | snake_case | `player_controller.gd` |
+| private | `_` 접두사 | `_update_health()` |
+| 시그널 | 과거형·명사구 | `health_changed`, `died` |
+| 상수 | UPPER_SNAKE | `MAX_SPEED` |
+
+## 생명주기·프레임
+
+- 입력·UI: `_unhandled_input` 또는 `Input` 싱글톤
+- 물리: `CharacterBody3D` 등은 `_physics_process`에서 `move_and_slide()`
+- `_process`에 무거운 연산·매 프레임 `load()` 금지
+
+## 타입·시그널 예시
+
+```gdscript
+signal health_changed(current: int, maximum: int)
+
+@export var max_health: int = 100
+@onready var _sprite: Sprite2D = %Sprite
+
+func take_damage(amount: int) -> void:
+	health = maxi(health - amount, 0)
+	health_changed.emit(health, max_health)
+```
+
+## 피해야 할 패턴
+
+- 씬 트리 전역 탐색 (`get_tree().get_first_node_in_group` 남용)
+- 매 프레임 `instantiate()` / `queue_free()` 반복
+- `project.godot`·`.tscn`을 에디터 없이 대량 수동 편집

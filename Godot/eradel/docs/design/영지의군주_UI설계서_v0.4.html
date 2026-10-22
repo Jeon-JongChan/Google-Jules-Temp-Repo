@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>영지의 군주 — UI 설계서 v0.4</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+
+:root {
+  --bg: #0e0c08;
+  --bg2: #16130d;
+  --bg3: #1e1a11;
+  --border: #3a3020;
+  --border2: #5a4a2a;
+  --gold: #c9a84c;
+  --gold2: #f0c85a;
+  --red: #c04040;
+  --green: #3a7a50;
+  --blue: #3a6a9a;
+  --purple: #6a5aaa;
+  --text: #e8dcc8;
+  --text2: #a09070;
+  --text3: #6a5a40;
+  --white: #f5f0e8;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Noto Sans KR', sans-serif;
+  min-height: 100vh;
+}
+
+/* ── 네비게이션 ── */
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(14,12,8,0.95);
+  border-bottom: 1px solid var(--border);
+  padding: 0 32px;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  backdrop-filter: blur(8px);
+}
+.nav-title {
+  font-family: 'Nanum Myeongjo', serif;
+  font-size: 14px;
+  color: var(--gold);
+  padding: 14px 0;
+  margin-right: 32px;
+  white-space: nowrap;
+  border-right: 1px solid var(--border);
+  padding-right: 32px;
+}
+.nav-tabs {
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+}
+.nav-tab {
+  padding: 14px 20px;
+  font-size: 12px;
+  color: var(--text2);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  transition: all .2s;
+  background: none;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+}
+.nav-tab:hover { color: var(--text); }
+.nav-tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+
+/* ── 섹션 ── */
+.section { display: none; padding: 48px 40px; max-width: 1200px; margin: 0 auto; }
+.section.active { display: block; }
+
+.section-header { margin-bottom: 40px; }
+.section-tag {
+  font-size: 10px;
+  color: var(--gold);
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.section-title {
+  font-family: 'Nanum Myeongjo', serif;
+  font-size: 32px;
+  color: var(--white);
+  margin-bottom: 8px;
+}
+.section-sub { font-size: 13px; color: var(--text2); font-style: italic; }
+
+/* ── 흐름도 ── */
+.flowchart {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 40px;
+  overflow-x: auto;
+}
+.flow-grid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  min-width: 700px;
+}
+.flow-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  margin: 0;
+}
+.flow-node {
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+  border: 1px solid;
+  cursor: pointer;
+  transition: all .2s;
+  white-space: nowrap;
+  min-width: 120px;
+}
+.flow-node:hover { transform: translateY(-2px); filter: brightness(1.2); }
+.flow-node.hub { background: #1a2a1e; border-color: var(--green); color: #7fd4a0; }
+.flow-node.dungeon { background: #2a1a1a; border-color: var(--red); color: #f08080; }
+.flow-node.sub { background: #1e1a10; border-color: var(--gold); color: var(--gold); }
+.flow-node.popup { background: var(--bg3); border-color: var(--border2); color: var(--text2); font-size: 11px; min-width: 90px; }
+.flow-node.gameover { background: #2a0a0a; border-color: #8a2020; color: #e06060; }
+.flow-node.title { background: #1a1a2e; border-color: var(--purple); color: #b0a0f0; }
+
+.flow-arrow {
+  color: var(--text3);
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.flow-arrow-down {
+  display: flex;
+  justify-content: center;
+  padding: 6px 0;
+  color: var(--text3);
+  font-size: 16px;
+}
+.flow-branch {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 40px;
+  width: 100%;
+  padding: 0 20px;
+}
+.flow-branch-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+.flow-branch-label {
+  font-size: 10px;
+  color: var(--text3);
+  margin-bottom: 4px;
+}
+
+.flow-legend {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+.legend-item { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text2); }
+.legend-dot { width: 10px; height: 10px; border-radius: 3px; border: 1px solid; }
+
+/* ── 와이어프레임 그리드 ── */
+.wf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.wf-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color .2s;
+}
+.wf-card:hover { border-color: var(--gold); }
+.wf-card.full { grid-column: 1 / -1; }
+.wf-card-header {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.wf-card-title { font-size: 13px; font-weight: 500; color: var(--white); }
+.wf-card-badge {
+  font-size: 9px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: #1a2a1e;
+  border: 1px solid var(--green);
+  color: #7fd4a0;
+}
+.wf-card-badge.pending {
+  background: var(--bg3);
+  border-color: var(--border2);
+  color: var(--text2);
+}
+.wf-preview {
+  padding: 16px;
+  background: #f5f0e8;
+  min-height: 200px;
+}
+
+/* ── 미리보기 (영지 메인) ── */
+.prev-topbar {
+  background: #fff;
+  border-bottom: 1px solid #e0d8cc;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: 'Noto Sans KR', sans-serif;
+}
+.prev-title { font-size: 12px; font-weight: 500; color: #2d2d2d; }
+.prev-chips { display: flex; gap: 5px; }
+.prev-chip {
+  font-size: 9px;
+  padding: 2px 7px;
+  border-radius: 10px;
+  border: 1px solid #e0d8cc;
+  color: #888;
+  background: #f5f0e8;
+}
+.prev-chip.gold { border-color: #BA7517; color: #633806; background: #FAEEDA; }
+.prev-body {
+  display: grid;
+  grid-template-columns: 130px 1fr 110px;
+  min-height: 160px;
+}
+.prev-sidebar {
+  border-right: 1px solid #e0d8cc;
+  background: #fff;
+  padding: 8px;
+}
+.prev-sidebar-r {
+  border-left: 1px solid #e0d8cc;
+  background: #fff;
+  padding: 8px;
+}
+.prev-center { padding: 8px; }
+.prev-label { font-size: 8px; color: #aaa; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; font-weight: 500; }
+.prev-stat { display: flex; justify-content: space-between; font-size: 9px; color: #666; margin-bottom: 2px; }
+.prev-bar { height: 3px; background: #eee; border-radius: 2px; overflow: hidden; margin-bottom: 5px; }
+.prev-bar-fill { height: 100%; border-radius: 2px; }
+.prev-map {
+  background: #ede8df;
+  border: 1px solid #d0c8b8;
+  border-radius: 4px;
+  height: 80px;
+  position: relative;
+  margin-bottom: 6px;
+}
+.prev-map-label { font-size: 7px; color: #aaa; position: absolute; top: 4px; left: 6px; }
+.prev-building {
+  position: absolute;
+  background: #fff;
+  border: 1px solid #d0c8b8;
+  border-radius: 3px;
+  padding: 2px 4px;
+  font-size: 7px;
+  color: #666;
+}
+.prev-dungeon {
+  position: absolute;
+  right: 8px; top: 50%;
+  transform: translateY(-50%);
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: #FCEBEB;
+  border: 1px solid #E24B4A;
+  display: flex; align-items: center; justify-content: center;
+}
+.prev-stress {
+  background: #fff;
+  border: 1px solid #e0d8cc;
+  border-radius: 4px;
+  padding: 5px 7px;
+}
+.prev-stress-bar { height: 4px; background: #eee; border-radius: 2px; overflow: hidden; position: relative; }
+.prev-nav-btn {
+  display: flex;
+  justify-content: space-between;
+  font-size: 8px;
+  color: #666;
+  background: #f5f0e8;
+  border: 1px solid #e0d8cc;
+  border-radius: 3px;
+  padding: 3px 6px;
+  margin-bottom: 3px;
+}
+.prev-member {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #f5f0e8;
+  border: 1px solid #e0d8cc;
+  border-radius: 3px;
+  padding: 3px 5px;
+  margin-bottom: 3px;
+}
+.prev-avatar { width: 14px; height: 14px; border-radius: 50%; background: #ddd; flex-shrink: 0; }
+.prev-member-info { flex: 1; }
+.prev-member-name { font-size: 8px; color: #2d2d2d; font-weight: 500; }
+.prev-member-hp { height: 2px; background: #eee; border-radius: 1px; overflow: hidden; }
+.prev-go-btn {
+  width: 100%;
+  padding: 5px;
+  border-radius: 3px;
+  border: 1px solid #0F6E56;
+  background: #E1F5EE;
+  color: #085041;
+  font-size: 9px;
+  font-weight: 500;
+  text-align: center;
+  margin-top: 4px;
+}
+
+/* ── 봉인서 미리보기 ── */
+.prev-envelope-area {
+  background: #1a1510;
+  padding: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  min-height: 100px;
+  align-items: center;
+}
+.prev-env {
+  width: 32px;
+  height: 42px;
+  border: 1px solid #5a4a2a;
+  border-radius: 3px;
+  background: #2a1f0e;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+.prev-env-seal { width: 10px; height: 10px; border-radius: 50%; border: 1px solid #BA7517; background: #1a1510; display: flex; align-items: center; justify-content: center; }
+.prev-env-dot { width: 4px; height: 4px; border-radius: 50%; background: #BA7517; }
+.prev-board { background: #f5f0e8; padding: 10px; display: grid; grid-template-columns: repeat(5,1fr); gap: 5px; }
+.prev-bcard { background: #fff; border: 1px solid #c8b89a; border-radius: 4px; padding: 4px; text-align: center; }
+.prev-bcard-grade { font-size: 7px; color: #888; }
+.prev-bcard-name { font-size: 8px; font-weight: 500; color: #2d2d2d; }
+.prev-bcard-job { font-size: 7px; color: #aaa; }
+
+/* ── 건물 관리 미리보기 ── */
+.prev-bm-body { display: grid; grid-template-columns: 120px 1fr; min-height: 160px; }
+.prev-bm-sidebar { background: #fff; border-right: 1px solid #e0d8cc; padding: 8px; }
+.prev-bm-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 6px;
+  border-radius: 3px;
+  border: 1px solid #e0d8cc;
+  margin-bottom: 3px;
+  cursor: pointer;
+}
+.prev-bm-item.active { border-color: #0F6E56; background: #E1F5EE; }
+.prev-bm-item.upg { border-color: #BA7517; background: #FAEEDA; }
+.prev-bm-item.dmg { border-color: #A32D2D; background: #FFF8F8; }
+.prev-bm-icon { width: 16px; height: 16px; border-radius: 3px; background: #eee; flex-shrink: 0; }
+.prev-bm-name { font-size: 8px; color: #2d2d2d; }
+.prev-bm-lv { font-size: 7px; color: #aaa; }
+.prev-bm-detail { background: #f5f0e8; padding: 10px; }
+.prev-bm-title { font-size: 12px; font-weight: 500; color: #2d2d2d; margin-bottom: 4px; }
+.prev-lv-row { display: flex; align-items: center; gap: 4px; margin-bottom: 8px; }
+.prev-lv-circle { width: 20px; height: 20px; border-radius: 50%; border: 1px solid #ddd; display: flex; align-items: center; justify-content: center; font-size: 8px; color: #aaa; background: #f5f0e8; }
+.prev-lv-circle.done { border-color: #0F6E56; background: #E1F5EE; color: #085041; }
+.prev-lv-circle.cur { border-color: #BA7517; background: #FAEEDA; color: #633806; }
+.prev-lv-line { flex: 1; height: 1px; background: #ddd; }
+.prev-lv-line.done { background: #0F6E56; }
+
+/* ── 치료소 미리보기 ── */
+.prev-treat-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; margin-bottom: 8px; }
+.prev-treat-slot { background: #fff; border: 1px solid #e0d8cc; border-radius: 4px; padding: 6px; min-height: 70px; }
+.prev-treat-slot.occ { border-color: #185FA5; background: #E6F1FB; }
+.prev-treat-slot.done { border-color: #0F6E56; background: #E1F5EE; }
+.prev-treat-slot.empty { border-style: dashed; display: flex; align-items: center; justify-content: center; }
+.prev-penalty { font-size: 7px; padding: 1px 4px; border-radius: 3px; margin-bottom: 2px; display: inline-block; }
+.prev-penalty.active { background: #FCEBEB; color: #791F1F; border: 1px solid #A32D2D; }
+.prev-penalty.mild { background: #FAEEDA; color: #633806; border: 1px solid #BA7517; }
+.prev-penalty.treating { background: #E6F1FB; color: #0C447C; border: 1px solid #185FA5; }
+
+/* ── 원정 준비 미리보기 ── */
+.prev-prep-body { display: grid; grid-template-columns: 1fr 100px; min-height: 160px; }
+.prev-party-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 4px; margin-bottom: 8px; }
+.prev-party-slot { background: #fff; border: 1px solid #e0d8cc; border-radius: 3px; padding: 4px; text-align: center; min-height: 55px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+.prev-party-slot.filled { border-color: #c8b89a; }
+.prev-party-slot.empty { border-style: dashed; }
+
+/* ── 팝업 미리보기 ── */
+.prev-popup-overlay {
+  background: rgba(0,0,0,0.3);
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+}
+.prev-popup {
+  background: #fff;
+  border: 1px solid #c8b89a;
+  border-radius: 6px;
+  width: 100%;
+  max-width: 280px;
+  overflow: hidden;
+}
+.prev-popup-header {
+  background: #f5f0e8;
+  border-bottom: 1px solid #e0d8cc;
+  padding: 8px 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.prev-popup-title { font-size: 11px; font-weight: 500; color: #2d2d2d; }
+.prev-penalty-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid #e0d8cc;
+  border-radius: 4px;
+  margin-bottom: 4px;
+  cursor: pointer;
+}
+.prev-check { width: 12px; height: 12px; border-radius: 2px; border: 1px solid #185FA5; background: #185FA5; display: flex; align-items: center; justify-content: center; color: white; font-size: 8px; flex-shrink: 0; }
+.prev-penalty-name { font-size: 10px; color: #2d2d2d; flex: 1; }
+.prev-penalty-cost { font-size: 9px; color: #633806; }
+.prev-sum { background: #f5f0e8; border: 1px solid #e0d8cc; border-radius: 4px; padding: 6px 8px; margin-top: 6px; }
+.prev-sum-row { display: flex; justify-content: space-between; font-size: 9px; color: #666; }
+
+/* ── 미완료 화면 ── */
+.pending-screen {
+  background: var(--bg3);
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  padding: 40px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 200px;
+}
+.pending-icon { font-size: 32px; color: var(--text3); }
+.pending-title { font-size: 14px; color: var(--text2); font-weight: 500; }
+.pending-sub { font-size: 12px; color: var(--text3); }
+
+/* ── 범례 테이블 ── */
+.legend-table { width: 100%; border-collapse: collapse; margin-top: 24px; }
+.legend-table th { text-align: left; font-size: 11px; color: var(--text2); padding: 8px 12px; border-bottom: 1px solid var(--border); font-weight: 500; }
+.legend-table td { font-size: 12px; color: var(--text); padding: 8px 12px; border-bottom: 1px solid var(--border); }
+.legend-table tr:hover td { background: var(--bg3); }
+.status-badge { font-size: 10px; padding: 2px 8px; border-radius: 10px; }
+.status-done { background: #1a2a1e; border: 1px solid var(--green); color: #7fd4a0; }
+.status-pending { background: var(--bg3); border: 1px solid var(--border2); color: var(--text2); }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-title">영지의 군주 UI 설계서 v0.4</div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showSection('flow')">화면 흐름도</button>
+    <button class="nav-tab" onclick="showSection('estate')">영지 메인</button>
+    <button class="nav-tab" onclick="showSection('guild')">모험가 길드</button>
+    <button class="nav-tab" onclick="showSection('prep')">원정 준비</button>
+    <button class="nav-tab" onclick="showSection('building')">건물 관리</button>
+    <button class="nav-tab" onclick="showSection('treatment')">치료소</button>
+    <button class="nav-tab" onclick="showSection('treat-popup')">치료 선택 팝업</button>
+    <button class="nav-tab" onclick="showSection('pending')">미완료 화면</button>
+  </div>
+</nav>
+
+<!-- ══ 화면 흐름도 ══ -->
+<div class="section active" id="sec-flow">
+  <div class="section-header">
+    <div class="section-tag">Screen Flow</div>
+    <div class="section-title">화면 흐름도</div>
+    <div class="section-sub">모든 화면의 연결 구조와 이동 경로</div>
+  </div>
+
+  <div class="flowchart">
+    <div class="flow-grid">
+
+      <!-- 타이틀 -->
+      <div class="flow-row">
+        <div class="flow-node title">타이틀 화면<br><small style="font-size:9px;opacity:.7">새 게임 / 불러오기</small></div>
+      </div>
+      <div class="flow-arrow-down">↓</div>
+
+      <!-- 영지 메인 -->
+      <div class="flow-row">
+        <div class="flow-node hub" style="min-width:200px;padding:14px 24px">
+          <div style="font-size:13px;margin-bottom:4px">🏰 영지 메인 화면</div>
+          <div style="font-size:10px;opacity:.7">자원 / 민심 / 스트레스 / 던전 활성도</div>
+        </div>
+      </div>
+      <div class="flow-arrow-down">↓</div>
+
+      <!-- 영지 분기 -->
+      <div class="flow-branch">
+        <div class="flow-branch-col">
+          <div class="flow-branch-label">건물 관리</div>
+          <div class="flow-node sub" onclick="showSection('building')">건물 관리</div>
+          <div class="flow-arrow-down" style="padding:4px 0">↓</div>
+          <div class="flow-node popup">업그레이드<br>확인 팝업</div>
+          <div class="flow-arrow-down" style="padding:4px 0">↓</div>
+          <div class="flow-node popup">수리<br>확인 팝업</div>
+        </div>
+        <div class="flow-branch-col">
+          <div class="flow-branch-label">모험가 길드</div>
+          <div class="flow-node sub" onclick="showSection('guild')">모험가 길드</div>
+          <div class="flow-arrow-down" style="padding:4px 0">↓</div>
+          <div class="flow-node popup" style="min-width:110px">용병 모집<br>(봉인서)</div>
+          <div class="flow-arrow-down" style="padding:4px 0">↓</div>
+          <div class="flow-node popup">사망기록<br>소문</div>
+        </div>
+        <div class="flow-branch-col">
+          <div class="flow-branch-label">치료소</div>
+          <div class="flow-node sub" onclick="showSection('treatment')">치료소</div>
+          <div class="flow-arrow-down" style="padding:4px 0">↓</div>
+          <div class="flow-node popup" onclick="showSection('treat-popup')">치료 선택<br>팝업</div>
+        </div>
+        <div class="flow-branch-col">
+          <div class="flow-branch-label">던전 원정</div>
+          <div class="flow-node dungeon" onclick="showSection('prep')">원정 준비</div>
+          <div class="flow-arrow-down" style="padding:4px 0">↓</div>
+          <div class="flow-node dungeon">던전 탐사<br><small style="font-size:9px;opacity:.7">방 이동 / 이벤트</small></div>
+          <div class="flow-arrow-down" style="padding:4px 0">↓</div>
+
+          <!-- 전투/이벤트 분기 -->
+          <div style="display:flex;gap:12px">
+            <div class="flow-branch-col">
+              <div class="flow-node dungeon" style="min-width:80px;font-size:10px">전투</div>
+              <div class="flow-arrow-down" style="padding:4px 0">↓</div>
+              <div style="display:flex;gap:6px">
+                <div class="flow-node hub" style="min-width:60px;font-size:10px;padding:6px">승리</div>
+                <div class="flow-node gameover" style="min-width:60px;font-size:10px;padding:6px">패배</div>
+              </div>
+            </div>
+            <div class="flow-branch-col">
+              <div class="flow-node popup" style="min-width:80px;font-size:10px">이벤트<br>선택지</div>
+            </div>
+          </div>
+
+          <div class="flow-arrow-down" style="padding:4px 0">↓</div>
+          <div class="flow-node hub" style="min-width:110px">던전 결과<br><small style="font-size:9px;opacity:.7">즉시 + 지연</small></div>
+        </div>
+        <div class="flow-branch-col">
+          <div class="flow-branch-label">일지 / 기록</div>
+          <div class="flow-node popup">일지<br>기록</div>
+        </div>
+      </div>
+
+      <div class="flow-arrow-down">↓</div>
+      <div class="flow-row" style="gap:24px">
+        <div class="flow-node hub" style="min-width:160px">영지 귀환 처리<br><small style="font-size:9px;opacity:.7">스트레스 갱신 / 민심 변화</small></div>
+        <div class="flow-node gameover">게임 오버<br><small style="font-size:9px;opacity:.7">스트레스 100</small></div>
+      </div>
+      <div class="flow-arrow-down">↺ 영지 메인으로 복귀</div>
+
+    </div>
+
+    <div class="flow-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#1a2a1e;border-color:#3a7a50"></div>핵심 허브</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#2a1a1a;border-color:#c04040"></div>던전 진행</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#1e1a10;border-color:#c9a84c"></div>영지 서브</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#1a1a2e;border-color:#6a5aaa"></div>타이틀</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#1e1a11;border-color:#5a4a2a"></div>팝업/서브</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#2a0a0a;border-color:#8a2020"></div>위험/종료</div>
+    </div>
+  </div>
+
+  <table class="legend-table">
+    <tr><th>화면</th><th>연결</th><th>상태</th><th>비고</th></tr>
+    <tr><td>타이틀 화면</td><td>→ 영지 메인</td><td><span class="status-badge status-done">완료</span></td><td>새 게임 / 불러오기 / 종료</td></tr>
+    <tr><td>영지 메인 (허브)</td><td>→ 모든 서브화면</td><td><span class="status-badge status-done">완료</span></td><td>자원·민심·스트레스 표시</td></tr>
+    <tr><td>모험가 길드</td><td>→ 용병 모집 / 사망기록 / 소문</td><td><span class="status-badge status-done">완료</span></td><td>3탭 구조 / 봉인서 뽑기</td></tr>
+    <tr><td>던전 원정 준비</td><td>→ 던전 탐사</td><td><span class="status-badge status-done">완료</span></td><td>파티 구성 / 소지품 / 시너지</td></tr>
+    <tr><td>건물 관리</td><td>→ 업그레이드 / 수리 팝업</td><td><span class="status-badge status-done">완료</span></td><td>정상 / 업그레이드중 / 파손</td></tr>
+    <tr><td>치료소</td><td>→ 치료 선택 팝업</td><td><span class="status-badge status-done">완료</span></td><td>Lv.1 50% ~ Lv.5 90%</td></tr>
+    <tr><td>치료 선택 팝업</td><td>→ 치료소 슬롯</td><td><span class="status-badge status-done">완료</span></td><td>2단계 / 체크박스 / 실시간 합산</td></tr>
+    <tr><td>전투 화면</td><td>→ 승리 / 패배</td><td><span class="status-badge status-pending">미완료</span></td><td>턴제 / 스킬 선택</td></tr>
+    <tr><td>던전 결과 화면</td><td>→ 영지 복귀</td><td><span class="status-badge status-pending">미완료</span></td><td>즉시결과 + 지연결과</td></tr>
+    <tr><td>일지 / 기록</td><td>—</td><td><span class="status-badge status-pending">미완료</span></td><td>사망기록 / 소문</td></tr>
+  </table>
+</div>
+
+<!-- ══ 영지 메인 ══ -->
+<div class="section" id="sec-estate">
+  <div class="section-header">
+    <div class="section-tag">Wireframe 01</div>
+    <div class="section-title">영지 메인 화면</div>
+    <div class="section-sub">모든 화면의 허브 — 3단 레이아웃</div>
+  </div>
+  <div class="wf-grid">
+    <div class="wf-card full">
+      <div class="wf-card-header">
+        <span class="wf-card-title">영지 메인 — 전체 레이아웃</span>
+        <span class="wf-card-badge">완료</span>
+      </div>
+      <div class="wf-preview" style="padding:0">
+        <div class="prev-topbar">
+          <div><div class="prev-title">영지 관리</div><div style="font-size:8px;color:#aaa">7일차 — 봄</div></div>
+          <div class="prev-chips">
+            <span class="prev-chip gold">금화 340</span>
+            <span class="prev-chip gold" style="border-color:#185FA5;color:#0C447C;background:#E6F1FB">마나석 2</span>
+            <span class="prev-chip">행동력 2/3</span>
+          </div>
+        </div>
+        <div class="prev-body">
+          <div class="prev-sidebar">
+            <div class="prev-label">영지 현황</div>
+            <div class="prev-stat"><span>민심</span><span>42%</span></div>
+            <div class="prev-bar"><div class="prev-bar-fill" style="width:42%;background:#BA7517"></div></div>
+            <div class="prev-stat"><span>방어력</span><span>보통</span></div>
+            <div class="prev-bar"><div class="prev-bar-fill" style="width:55%;background:#639922"></div></div>
+            <div class="prev-label" style="margin-top:6px">던전 활성도</div>
+            <div class="prev-stat"><span>위험도</span><span style="color:#E24B4A">높음</span></div>
+            <div class="prev-bar"><div class="prev-bar-fill" style="width:72%;background:#E24B4A"></div></div>
+            <div style="margin-top:6px">
+              <div class="prev-label">이동</div>
+              <div class="prev-nav-btn"><span>건물 관리</span><span>›</span></div>
+              <div class="prev-nav-btn"><span>모험가 길드</span><span>›</span></div>
+              <div class="prev-nav-btn"><span>일지 / 기록</span><span>›</span></div>
+            </div>
+          </div>
+          <div class="prev-center">
+            <div class="prev-map">
+              <div class="prev-map-label">영지 지도</div>
+              <div class="prev-building" style="left:12px;top:10px">대장간</div>
+              <div class="prev-building" style="left:60px;top:8px">마탑</div>
+              <div class="prev-building" style="left:12px;top:44px">주점</div>
+              <div class="prev-building" style="left:62px;top:44px">치료소</div>
+              <div class="prev-dungeon"><div style="width:5px;height:5px;border-radius:50%;background:#E24B4A"></div></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:6px">
+              <div style="background:#fff;border:1px solid #BA7517;border-radius:3px;padding:4px 6px"><div style="font-size:8px;font-weight:500;color:#2d2d2d">던전 경보</div><div style="font-size:7px;color:#854F0B">3일 내 침공 예상</div></div>
+              <div style="background:#fff;border:1px solid #e0d8cc;border-radius:3px;padding:4px 6px"><div style="font-size:8px;font-weight:500;color:#2d2d2d">새 소문</div><div style="font-size:7px;color:#aaa">용병 실종 목격담</div></div>
+            </div>
+            <div class="prev-stress">
+              <div style="display:flex;justify-content:space-between;font-size:8px;color:#666;margin-bottom:3px"><span>영지 스트레스</span><span>38 / 100</span></div>
+              <div class="prev-stress-bar">
+                <div style="position:absolute;height:100%;width:38%;background:#BA7517;border-radius:2px"></div>
+                <div style="position:absolute;height:100%;left:25%;width:13%;background:#E24B4A;opacity:.5;border-radius:2px"></div>
+              </div>
+              <div style="display:flex;gap:5px;margin-top:3px">
+                <span style="font-size:7px;padding:1px 4px;border-radius:6px;background:#FAEEDA;color:#633806;border:1px solid #BA7517">해소가능 25</span>
+                <span style="font-size:7px;padding:1px 4px;border-radius:6px;background:#FCEBEB;color:#791F1F;border:1px solid #A32D2D">영구 13</span>
+              </div>
+            </div>
+          </div>
+          <div class="prev-sidebar-r">
+            <div class="prev-label">원정 파티</div>
+            <div class="prev-member"><div class="prev-avatar"></div><div class="prev-member-info"><div class="prev-member-name">아이언 핸드</div><div class="prev-member-hp"><div style="height:100%;width:78%;background:#639922"></div></div></div></div>
+            <div class="prev-member"><div class="prev-avatar"></div><div class="prev-member-info"><div class="prev-member-name">붉은 룬</div><div class="prev-member-hp"><div style="height:100%;width:55%;background:#639922"></div></div></div></div>
+            <div class="prev-member"><div class="prev-avatar"></div><div class="prev-member-info"><div class="prev-member-name">그림자 발소리</div><div class="prev-member-hp"><div style="height:100%;width:100%;background:#639922"></div></div></div></div>
+            <div class="prev-member" style="opacity:.4;border:1px dashed #e0d8cc"><div class="prev-avatar" style="background:#f5f0e8"></div><div class="prev-member-info"><div style="font-size:8px;color:#aaa">슬롯 비어있음</div></div></div>
+            <div class="prev-member" style="opacity:.4;border:1px dashed #e0d8cc"><div class="prev-avatar" style="background:#f5f0e8"></div><div class="prev-member-info"><div style="font-size:8px;color:#aaa">슬롯 비어있음</div></div></div>
+            <div class="prev-go-btn">던전 원정 출발 ↗</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="margin-top:20px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px">
+    <div style="font-size:11px;color:var(--gold);margin-bottom:8px;font-weight:500">개발자 포인트</div>
+    <div style="font-size:12px;color:var(--text2);line-height:1.8">
+      • 영지 지도: 건물 위치 고정 좌표 + 클릭 이벤트<br>
+      • 스트레스 바: 해소 가능값 + 영구값 레이어 분리<br>
+      • 던전 마커: 활성도 수치에 따라 색상 변화<br>
+      • 파티 슬롯: 5슬롯 고정 배열, 빈 슬롯은 비활성<br>
+      • 경보 알림: 조건 충족 시 자동 표시
+    </div>
+  </div>
+</div>
+
+<!-- ══ 모험가 길드 ══ -->
+<div class="section" id="sec-guild">
+  <div class="section-header">
+    <div class="section-tag">Wireframe 02</div>
+    <div class="section-title">모험가 길드</div>
+    <div class="section-sub">3탭 구조 — 봉인서 뽑기 연출</div>
+  </div>
+  <div class="wf-grid">
+    <div class="wf-card">
+      <div class="wf-card-header">
+        <span class="wf-card-title">탭 1 — 용병 모집 (봉인서)</span>
+        <span class="wf-card-badge">완료</span>
+      </div>
+      <div class="wf-preview" style="padding:0">
+        <div class="prev-topbar">
+          <div><div class="prev-title">모험가 길드 — 용병 모집</div><div style="font-size:8px;color:#aaa;font-style:italic">"봉인서를 뜯는 순간, 운명이 결정된다"</div></div>
+          <span class="prev-chip gold">금화 340</span>
+        </div>
+        <div style="display:flex;gap:6px;padding:8px;background:#f5f0e8;border-bottom:1px solid #e0d8cc">
+          <div style="flex:1;border:1px solid #888780;background:#F1EFE8;border-radius:4px;padding:6px;text-align:center;font-size:9px;font-weight:500;color:#2C2C2A">일반 모집<br><span style="font-size:8px;color:#888">금화 50</span></div>
+          <div style="flex:1;border:1px solid #e0d8cc;background:#fff;border-radius:4px;padding:6px;text-align:center;font-size:9px;color:#aaa">정예 모집<br><span style="font-size:8px;color:#185FA5">금화 150</span></div>
+          <div style="flex:1;border:1px solid #e0d8cc;background:#fff;border-radius:4px;padding:6px;text-align:center;font-size:9px;color:#aaa">특수 모집<br><span style="font-size:8px;color:#534AB7">금화 350</span></div>
+        </div>
+        <div class="prev-envelope-area">
+          ${Array(10).fill(0).map((_,i) => `
+          <div class="prev-env" style="${i===3?'border-color:#185FA5;background:#0c1825':''}${i===7?'border-color:#7F77DD;background:#13102a':''}">
+            <div class="prev-env-seal" style="${i===3?'border-color:#378ADD':''}${i===7?'border-color:#7F77DD':''}"><div class="prev-env-dot" style="${i===3?'background:#378ADD':''}${i===7?'background:#AFA9EC':''}"></div></div>
+          </div>`).join('')}
+        </div>
+        <div class="prev-board">
+          <div class="prev-bcard"><div class="prev-bcard-grade" style="color:#888">일반</div><div class="prev-bcard-name">부러진 칼</div><div class="prev-bcard-job">검사 Lv.1</div></div>
+          <div class="prev-bcard" style="border-color:#185FA5;background:#E6F1FB"><div class="prev-bcard-grade" style="color:#0C447C">정예</div><div class="prev-bcard-name">아이언 핸드</div><div class="prev-bcard-job">검사 Lv.4</div></div>
+          <div class="prev-bcard"><div class="prev-bcard-grade" style="color:#888">일반</div><div class="prev-bcard-name">독수리눈</div><div class="prev-bcard-job">궁수 Lv.2</div></div>
+          <div class="prev-bcard" style="opacity:.3;border-style:dashed"></div>
+          <div class="prev-bcard" style="opacity:.3;border-style:dashed"></div>
+        </div>
+      </div>
+    </div>
+    <div class="wf-card">
+      <div class="wf-card-header">
+        <span class="wf-card-title">탭 2 — 사망 기록</span>
+        <span class="wf-card-badge pending">미완료</span>
+      </div>
+      <div class="wf-preview">
+        <div class="pending-screen">
+          <div class="pending-icon">📜</div>
+          <div class="pending-title">사망 기록 탭</div>
+          <div class="pending-sub">사망 용병 목록 + 영구 스트레스 누적 카운터<br>추후 제작 예정</div>
+        </div>
+      </div>
+    </div>
+    <div class="wf-card">
+      <div class="wf-card-header">
+        <span class="wf-card-title">탭 3 — 떠도는 소문</span>
+        <span class="wf-card-badge pending">미완료</span>
+      </div>
+      <div class="wf-preview">
+        <div class="pending-screen">
+          <div class="pending-icon">📢</div>
+          <div class="pending-title">떠도는 소문 탭</div>
+          <div class="pending-sub">유효기간 있는 소문 목록 + 이벤트 연결<br>추후 제작 예정</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 원정 준비 ══ -->
+<div class="section" id="sec-prep">
+  <div class="section-header">
+    <div class="section-tag">Wireframe 03</div>
+    <div class="section-title">던전 원정 준비</div>
+    <div class="section-sub">파티 구성 / 소지품 / 시너지 확인</div>
+  </div>
+  <div class="wf-grid">
+    <div class="wf-card full">
+      <div class="wf-card-header">
+        <span class="wf-card-title">원정 준비 — 전체 레이아웃</span>
+        <span class="wf-card-badge">완료</span>
+      </div>
+      <div class="wf-preview" style="padding:0">
+        <div class="prev-topbar">
+          <div><div class="prev-title">던전 원정 준비</div><div style="font-size:8px;color:#aaa">출발 전 파티와 소지품을 확인하세요</div></div>
+          <div class="prev-chips"><span class="prev-chip" style="border-color:#A32D2D;color:#791F1F;background:#FCEBEB">던전 활성도 높음</span><span class="prev-chip gold">금화 340</span></div>
+        </div>
+        <div class="prev-prep-body">
+          <div style="padding:10px">
+            <div class="prev-label">목표 던전</div>
+            <div style="background:#fff;border:1px solid #e0d8cc;border-radius:4px;padding:8px;margin-bottom:8px">
+              <div style="font-size:10px;font-weight:500;color:#2d2d2d">어둠의 균열 던전</div>
+              <div style="font-size:8px;color:#aaa;font-style:italic;margin-bottom:4px">"한번 들어간 자는..."</div>
+              <div style="display:flex;justify-content:space-between;font-size:8px;color:#666"><span>활성도</span><span style="color:#A32D2D">높음 (72%)</span></div>
+              <div style="display:flex;justify-content:space-between;font-size:8px;color:#666"><span>예상 난이도</span><span style="color:#854F0B">중상</span></div>
+            </div>
+            <div class="prev-label">파티 구성 (5명)</div>
+            <div class="prev-party-grid">
+              <div class="prev-party-slot filled"><span style="font-size:7px;background:#FAEEDA;color:#633806;border-radius:5px;padding:1px 3px">전사</span><div style="font-size:8px;font-weight:500">아이언</div><div style="font-size:7px;color:#aaa">검사 Lv.4</div></div>
+              <div class="prev-party-slot filled"><span style="font-size:7px;background:#EEEDFE;color:#3C3489;border-radius:5px;padding:1px 3px">마법</span><div style="font-size:8px;font-weight:500">붉은 룬</div><div style="font-size:7px;color:#aaa">룬마법사</div></div>
+              <div class="prev-party-slot filled"><span style="font-size:7px;background:#EAF3DE;color:#27500A;border-radius:5px;padding:1px 3px">레인저</span><div style="font-size:8px;font-weight:500">그림자</div><div style="font-size:7px;color:#aaa">암살자</div></div>
+              <div class="prev-party-slot filled"><span style="font-size:7px;background:#E6F1FB;color:#0C447C;border-radius:5px;padding:1px 3px">성직</span><div style="font-size:8px;font-weight:500">십자가</div><div style="font-size:7px;color:#aaa">사제</div></div>
+              <div class="prev-party-slot empty"><div style="font-size:8px;color:#aaa">비어있음</div></div>
+            </div>
+            <div class="prev-label">파티 관계</div>
+            <div style="background:#fff;border:1px solid #e0d8cc;border-radius:4px;padding:6px;margin-bottom:6px">
+              <div style="display:flex;justify-content:space-between;font-size:8px;padding:2px 0;border-bottom:1px solid #f0ebe0"><span>아이언 핸드 + 붉은 룬</span><span style="color:#085041">장인과 칼날 ✓</span></div>
+              <div style="display:flex;justify-content:space-between;font-size:8px;padding:2px 0;color:#A32D2D"><span>시너지 2쌍 이상</span><span style="text-decoration:underline">슬롯 선택 필요</span></div>
+            </div>
+            <div class="prev-label">소지품 (6/8)</div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px">
+              ${['치료약 ×3','해독제 ×2','횃불 ×4','식량 ×2','마나포션','함정도구','+추가','+추가'].map(n=>`<div style="background:#fff;border:1px solid #e0d8cc;border-radius:3px;padding:3px;text-align:center;font-size:7px;color:${n.startsWith('+')?'#aaa':'#2d2d2d'}">${n}</div>`).join('')}
+            </div>
+          </div>
+          <div style="border-left:1px solid #e0d8cc;background:#fff;padding:8px">
+            <div class="prev-label">대기 용병</div>
+            ${['조용한 발소리|헌터 Lv.4|대기','술고래 주먹|광전사 Lv.2|치료중'].map(m=>{const[n,j,s]=m.split('|');return`<div style="border:1px solid ${s==='치료중'?'#A32D2D':'#e0d8cc'};border-radius:3px;padding:4px;margin-bottom:3px;opacity:${s==='치료중'?'.5':'1'}"><div style="font-size:8px;font-weight:500;color:#2d2d2d">${n}</div><div style="font-size:7px;color:#aaa">${j} — ${s}</div></div>`;}).join('')}
+            <div style="margin-top:8px">
+              <div class="prev-label">준비 체크</div>
+              <div style="font-size:8px;display:flex;justify-content:space-between;padding:2px 0"><span style="color:#666">파티 인원</span><span style="color:#854F0B">4/5 ⚠</span></div>
+              <div style="font-size:8px;display:flex;justify-content:space-between;padding:2px 0"><span style="color:#666">시너지 슬롯</span><span style="color:#A32D2D">미선택 ✕</span></div>
+              <div style="font-size:8px;display:flex;justify-content:space-between;padding:2px 0"><span style="color:#666">소지품</span><span style="color:#085041">6/8 ✓</span></div>
+            </div>
+          </div>
+        </div>
+        <div style="border-top:1px solid #e0d8cc;padding:8px 12px;background:#fff;display:flex;gap:8px;align-items:center">
+          <div style="flex:1;text-align:center;font-size:9px;color:#854F0B">⚠ 시너지 슬롯 선택 필요</div>
+          <div style="padding:6px 16px;border-radius:4px;border:1px solid #0F6E56;background:#E1F5EE;color:#085041;font-size:10px;font-weight:500">던전 입장 ↗</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 건물 관리 ══ -->
+<div class="section" id="sec-building">
+  <div class="section-header">
+    <div class="section-tag">Wireframe 04</div>
+    <div class="section-title">건물 관리</div>
+    <div class="section-sub">정상 / 업그레이드 중 / 파손 — 3가지 상태</div>
+  </div>
+  <div class="wf-grid">
+    <div class="wf-card full">
+      <div class="wf-card-header">
+        <span class="wf-card-title">건물 관리 — 전체 레이아웃</span>
+        <span class="wf-card-badge">완료</span>
+      </div>
+      <div class="wf-preview" style="padding:0">
+        <div class="prev-topbar">
+          <div><div class="prev-title">건물 관리</div><div style="font-size:8px;color:#aaa">업그레이드와 수리로 영지를 발전시키세요</div></div>
+          <div class="prev-chips"><span class="prev-chip gold">금화 340</span><span class="prev-chip gold" style="border-color:#185FA5;color:#0C447C;background:#E6F1FB">마나석 2</span></div>
+        </div>
+        <div class="prev-bm-body">
+          <div class="prev-bm-sidebar">
+            <div class="prev-label">건물 목록</div>
+            <div class="prev-bm-item active"><div class="prev-bm-icon"></div><div><div class="prev-bm-name">대장간</div><div class="prev-bm-lv">Lv.2 — 정상</div></div></div>
+            <div class="prev-bm-item upg"><div class="prev-bm-icon"></div><div><div class="prev-bm-name">마탑</div><div class="prev-bm-lv">Lv.1→2 업그레이드중</div></div></div>
+            <div class="prev-bm-item dmg"><div class="prev-bm-icon"></div><div><div class="prev-bm-name">모험가 길드</div><div class="prev-bm-lv">Lv.1 — 파손됨</div></div></div>
+            <div class="prev-bm-item"><div class="prev-bm-icon"></div><div><div class="prev-bm-name">주점</div><div class="prev-bm-lv">Lv.2 — 정상</div></div></div>
+            <div class="prev-bm-item"><div class="prev-bm-icon"></div><div><div class="prev-bm-name">영주 저택</div><div class="prev-bm-lv">Lv.1 — 정상</div></div></div>
+            <div class="prev-bm-item"><div class="prev-bm-icon"></div><div><div class="prev-bm-name">치료소</div><div class="prev-bm-lv">Lv.1 — 정상</div></div></div>
+          </div>
+          <div class="prev-bm-detail">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+              <div><div class="prev-bm-title">대장간</div><div style="font-size:9px;color:#aaa;font-style:italic">"쇠를 다루는 자만이 전장을 이해한다"</div></div>
+              <span style="font-size:9px;padding:2px 8px;border-radius:10px;background:#E1F5EE;border:1px solid #0F6E56;color:#085041">Lv.2</span>
+            </div>
+            <div style="background:#fff;border:1px solid #e0d8cc;border-radius:4px;padding:8px;margin-bottom:8px">
+              <div class="prev-label">현재 효과</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
+                <div style="background:#f5f0e8;border-radius:3px;padding:4px 6px"><div style="font-size:7px;color:#aaa">초기 레벨</div><div style="font-size:9px;font-weight:500">Lv.2 시작</div></div>
+                <div style="background:#f5f0e8;border-radius:3px;padding:4px 6px"><div style="font-size:7px;color:#aaa">스킬 강화</div><div style="font-size:9px;font-weight:500">2강까지</div></div>
+                <div style="background:#f5f0e8;border-radius:3px;padding:4px 6px"><div style="font-size:7px;color:#aaa">마탑 협업</div><div style="font-size:9px;font-weight:500;color:#085041">활성</div></div>
+              </div>
+            </div>
+            <div style="background:#fff;border:1px solid #e0d8cc;border-radius:4px;padding:8px">
+              <div class="prev-label">업그레이드 (→ Lv.3)</div>
+              <div class="prev-lv-row">
+                <div class="prev-lv-circle done">1</div><div class="prev-lv-line done"></div>
+                <div class="prev-lv-circle cur">2</div><div class="prev-lv-line"></div>
+                <div class="prev-lv-circle">3</div><div class="prev-lv-line"></div>
+                <div class="prev-lv-circle">MAX</div>
+              </div>
+              <div style="background:#f5f0e8;border-radius:3px;padding:6px;margin-bottom:6px">
+                <div style="font-size:8px;font-weight:500;color:#666;margin-bottom:3px">Lv.3 추가 효과</div>
+                <div style="font-size:8px;color:#2d2d2d">· 초기 레벨 → Lv.3</div>
+                <div style="font-size:8px;color:#085041">· 3강 해금 (마탑 협업 필요)</div>
+              </div>
+              <div style="display:flex;gap:6px;align-items:center">
+                <span style="font-size:8px;padding:2px 7px;border-radius:10px;background:#E1F5EE;border:1px solid #0F6E56;color:#085041">금화 200 ✓</span>
+                <span style="font-size:8px;padding:2px 7px;border-radius:10px;background:#FCEBEB;border:1px solid #A32D2D;color:#791F1F">마나석 3 (보유2) ✕</span>
+                <div style="flex:1"></div>
+                <div style="padding:4px 10px;border-radius:3px;background:#f0f0f0;border:1px solid #ddd;font-size:8px;color:#aaa">업그레이드 (잠금)</div>
+              </div>
+              <div style="font-size:8px;color:#aaa;margin-top:4px">소요 시간: 3턴</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 치료소 ══ -->
+<div class="section" id="sec-treatment">
+  <div class="section-header">
+    <div class="section-tag">Wireframe 05</div>
+    <div class="section-title">치료소</div>
+    <div class="section-sub">패널티 치료 / Lv.1 50% ~ Lv.5 90%</div>
+  </div>
+  <div class="wf-grid">
+    <div class="wf-card full">
+      <div class="wf-card-header">
+        <span class="wf-card-title">치료소 — 전체 레이아웃</span>
+        <span class="wf-card-badge">완료</span>
+      </div>
+      <div class="wf-preview" style="padding:0">
+        <div class="prev-topbar">
+          <div><div class="prev-title">치료소</div><div style="font-size:8px;color:#aaa;font-style:italic">"상처는 낫지만, 흉터는 남는다"</div></div>
+          <div class="prev-chips"><span class="prev-chip gold">금화 340</span><span class="prev-chip">치료소 Lv.1</span></div>
+        </div>
+        <div style="padding:10px">
+          <div class="prev-label">치료 슬롯 (2/3 사용 중)</div>
+          <div class="prev-treat-grid">
+            <div class="prev-treat-slot occ">
+              <div style="font-size:8px;font-weight:500;color:#2d2d2d;margin-bottom:3px">부서진 십자가</div>
+              <span class="prev-penalty treating">시력 손상 — 치료중</span><br>
+              <span class="prev-penalty mild">극도의 피로 — 대기</span>
+              <div style="height:3px;background:#ddd;border-radius:2px;margin-top:4px;overflow:hidden"><div style="width:60%;height:100%;background:#185FA5"></div></div>
+              <div style="font-size:7px;color:#aaa;margin-top:2px">완료까지 2턴</div>
+            </div>
+            <div class="prev-treat-slot done">
+              <div style="font-size:8px;font-weight:500;color:#2d2d2d;margin-bottom:3px">아이언 핸드</div>
+              <span class="prev-penalty" style="background:#E1F5EE;color:#085041;border:1px solid #0F6E56">골절 (완화됨) ✓</span>
+              <div style="height:3px;background:#ddd;border-radius:2px;margin-top:4px;overflow:hidden"><div style="width:100%;height:100%;background:#0F6E56"></div></div>
+              <div style="font-size:7px;font-weight:500;color:#085041;margin-top:2px;text-align:center">치료 완료</div>
+              <div style="font-size:8px;padding:2px 6px;border-radius:3px;border:1px solid #0F6E56;background:#E1F5EE;color:#085041;text-align:center;margin-top:2px">퇴소 ↗</div>
+            </div>
+            <div class="prev-treat-slot empty">
+              <div style="font-size:9px;color:#aaa">비어있음<br>클릭해 입원</div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div style="background:#fff;border:1px solid #e0d8cc;border-radius:4px;padding:8px">
+              <div class="prev-label">치료소 현황</div>
+              <div style="font-size:8px;display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid #f0ebe0"><span style="color:#666">치료 성공률</span><span style="color:#854F0B;font-weight:500">50% (Lv.1)</span></div>
+              <div style="font-size:8px;display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid #f0ebe0"><span style="color:#666">패널티 처리</span><span>완화 / 삭제 불가</span></div>
+            </div>
+            <div style="background:#fff;border:1px solid #e0d8cc;border-radius:4px;padding:8px">
+              <div class="prev-label">패널티 등급</div>
+              <div style="font-size:8px;display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid #f0ebe0"><span style="color:#791F1F">중증</span><span>금화 120 / 3턴</span></div>
+              <div style="font-size:8px;display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid #f0ebe0"><span style="color:#854F0B">경증</span><span>금화 60 / 2턴</span></div>
+              <div style="font-size:8px;display:flex;justify-content:space-between;padding:2px 0"><span style="color:#534AB7">마력 계열</span><span>금화 100 / 2턴</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 치료 선택 팝업 ══ -->
+<div class="section" id="sec-treat-popup">
+  <div class="section-header">
+    <div class="section-tag">Wireframe 06</div>
+    <div class="section-title">치료 선택 팝업</div>
+    <div class="section-sub">2단계 흐름 / 체크박스 / 비용 실시간 합산</div>
+  </div>
+  <div class="wf-grid">
+    <div class="wf-card">
+      <div class="wf-card-header">
+        <span class="wf-card-title">Step 1 — 용병 선택</span>
+        <span class="wf-card-badge">완료</span>
+      </div>
+      <div class="wf-preview">
+        <div class="prev-popup-overlay" style="background:transparent">
+          <div class="prev-popup">
+            <div class="prev-popup-header">
+              <span class="prev-popup-title">입원할 용병 선택</span>
+              <span style="font-size:9px;color:#aaa;background:#f5f0e8;border:1px solid #e0d8cc;border-radius:8px;padding:1px 6px">1 / 2</span>
+            </div>
+            <div style="padding:10px">
+              <div class="prev-label">부상 용병</div>
+              <div style="border:1px solid #e0d8cc;border-radius:4px;padding:7px;margin-bottom:5px;cursor:pointer;display:flex;align-items:center;gap:7px">
+                <div class="prev-avatar"></div>
+                <div style="flex:1"><div style="font-size:10px;font-weight:500">술고래 주먹</div><div style="font-size:8px;color:#aaa">광전사 Lv.2</div><div style="display:flex;gap:3px;margin-top:2px"><span class="prev-penalty active">마력 역류</span><span class="prev-penalty active">타박상</span></div></div>
+                <span style="color:#aaa;font-size:12px">›</span>
+              </div>
+              <div style="border:1px solid #e0d8cc;border-radius:4px;padding:7px;cursor:pointer;display:flex;align-items:center;gap:7px">
+                <div class="prev-avatar"></div>
+                <div style="flex:1"><div style="font-size:10px;font-weight:500">그림자 발소리</div><div style="font-size:8px;color:#aaa">암살자 Lv.5</div><div style="display:flex;gap:3px;margin-top:2px"><span class="prev-penalty mild">극도의 피로</span></div></div>
+                <span style="color:#aaa;font-size:12px">›</span>
+              </div>
+              <div class="prev-label" style="margin-top:8px">정상 용병 (치료 불필요)</div>
+              <div style="border:1px solid #e0d8cc;border-radius:4px;padding:6px;opacity:.4;display:flex;align-items:center;gap:7px"><div class="prev-avatar"></div><div style="font-size:9px;color:#aaa">붉은 룬 — 패널티 없음</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="wf-card">
+      <div class="wf-card-header">
+        <span class="wf-card-title">Step 2 — 패널티 항목 선택</span>
+        <span class="wf-card-badge">완료</span>
+      </div>
+      <div class="wf-preview">
+        <div class="prev-popup-overlay" style="background:transparent">
+          <div class="prev-popup">
+            <div class="prev-popup-header">
+              <span class="prev-popup-title">치료 항목 선택</span>
+              <span style="font-size:9px;color:#aaa;background:#f5f0e8;border:1px solid #e0d8cc;border-radius:8px;padding:1px 6px">2 / 2</span>
+            </div>
+            <div style="background:#f5f0e8;border-bottom:1px solid #e0d8cc;padding:7px 10px;display:flex;align-items:center;gap:7px">
+              <div class="prev-avatar"></div>
+              <div><div style="font-size:11px;font-weight:500">술고래 주먹</div><div style="font-size:9px;color:#aaa">광전사 Lv.2</div></div>
+              <span style="margin-left:auto;font-size:9px;color:#aaa;text-decoration:underline;cursor:pointer">← 다시 선택</span>
+            </div>
+            <div style="padding:10px">
+              <div class="prev-label">치료할 항목 선택</div>
+              <div class="prev-penalty-row">
+                <div class="prev-check">✓</div>
+                <div style="flex:1"><div class="prev-penalty-name">마력 역류</div><div style="font-size:8px;color:#aaa">스킬 비용 +30%</div><div style="font-size:8px;color:#A32D2D">⚠ 치료 안 하면 효율 대폭 저하</div></div>
+                <div style="text-align:right"><div class="prev-penalty-cost">금화 100</div><div style="font-size:8px;color:#aaa">2턴</div></div>
+              </div>
+              <div class="prev-penalty-row">
+                <div class="prev-check" style="border-color:#185FA5;background:#185FA5">✓</div>
+                <div style="flex:1"><div class="prev-penalty-name">타박상</div><div style="font-size:8px;color:#aaa">받는 피해 +10%</div></div>
+                <div style="text-align:right"><div class="prev-penalty-cost">금화 60</div><div style="font-size:8px;color:#aaa">2턴</div></div>
+              </div>
+              <div class="prev-sum">
+                <div class="prev-sum-row"><span>선택 항목</span><span style="font-weight:500">2개</span></div>
+                <div class="prev-sum-row"><span>총 비용</span><span style="font-weight:500">금화 160</span></div>
+                <div class="prev-sum-row"><span>소요 턴</span><span style="color:#854F0B">4턴 (순차)</span></div>
+                <div style="height:1px;background:#e0d8cc;margin:4px 0"></div>
+                <div class="prev-sum-row"><span>성공률 (Lv.1)</span><span>50%</span></div>
+                <div style="height:3px;background:#eee;border-radius:2px;overflow:hidden;margin-top:2px"><div style="width:50%;height:100%;background:#E24B4A"></div></div>
+              </div>
+            </div>
+            <div style="padding:8px 10px;border-top:1px solid #e0d8cc;background:#f5f0e8;display:flex;gap:6px">
+              <div style="padding:5px 10px;border-radius:3px;border:1px solid #e0d8cc;background:#fff;font-size:10px;color:#666;cursor:pointer">뒤로</div>
+              <div style="flex:1;padding:5px;border-radius:3px;border:1px solid #0F6E56;background:#E1F5EE;color:#085041;font-size:10px;font-weight:500;text-align:center;cursor:pointer">입원 확정 — 금화 160 ↗</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 미완료 ══ -->
+<div class="section" id="sec-pending">
+  <div class="section-header">
+    <div class="section-tag">Pending</div>
+    <div class="section-title">미완료 화면</div>
+    <div class="section-sub">추후 제작 예정인 화면 목록</div>
+  </div>
+  <div class="wf-grid">
+    <div class="wf-card">
+      <div class="wf-card-header">
+        <span class="wf-card-title">전투 화면</span>
+        <span class="wf-card-badge pending">미완료</span>
+      </div>
+      <div class="wf-preview">
+        <div class="pending-screen">
+          <div class="pending-icon">⚔️</div>
+          <div class="pending-title">턴제 전투 화면</div>
+          <div class="pending-sub">스킬 선택 / HP 표시 / 행동 순서<br>우선도 높음</div>
+        </div>
+      </div>
+    </div>
+    <div class="wf-card">
+      <div class="wf-card-header">
+        <span class="wf-card-title">던전 결과 화면</span>
+        <span class="wf-card-badge pending">미완료</span>
+      </div>
+      <div class="wf-preview">
+        <div class="pending-screen">
+          <div class="pending-icon">📊</div>
+          <div class="pending-title">던전 결과 화면</div>
+          <div class="pending-sub">즉시결과 + 지연결과 예고<br>우선도 높음</div>
+        </div>
+      </div>
+    </div>
+    <div class="wf-card">
+      <div class="wf-card-header">
+        <span class="wf-card-title">일지 / 기록 화면</span>
+        <span class="wf-card-badge pending">미완료</span>
+      </div>
+      <div class="wf-preview">
+        <div class="pending-screen">
+          <div class="pending-icon">📖</div>
+          <div class="pending-title">일지 / 기록 화면</div>
+          <div class="pending-sub">사망 기록 / 소문 / 영주 선택 기록<br>우선도 중간</div>
+        </div>
+      </div>
+    </div>
+    <div class="wf-card">
+      <div class="wf-card-header">
+        <span class="wf-card-title">수리 확인 팝업</span>
+        <span class="wf-card-badge pending">미완료</span>
+      </div>
+      <div class="wf-preview">
+        <div class="pending-screen">
+          <div class="pending-icon">🔨</div>
+          <div class="pending-title">수리 확인 팝업</div>
+          <div class="pending-sub">즉시 완료 / 턴 소요 / 행동력 소모<br>결정 후 제작 예정</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('sec-' + id).classList.add('active');
+  const tabs = document.querySelectorAll('.nav-tab');
+  const map = { flow: 0, estate: 1, guild: 2, prep: 3, building: 4, treatment: 5, 'treat-popup': 6, pending: 7 };
+  tabs[map[id]].classList.add('active');
+  window.scrollTo(0, 0);
+}
+</script>
+</body>
+</html>
