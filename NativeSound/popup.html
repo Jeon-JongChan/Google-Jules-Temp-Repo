@@ -11,7 +11,7 @@
         }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            width: 280px;
+            width: 300px;
             padding: 20px;
             margin: 0;
             background-color: var(--bg-color);
@@ -30,6 +30,27 @@
         h3 span {
             margin-right: 8px;
             font-size: 20px;
+        }
+        .section-title {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #555;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            outline: none;
+            background-color: white;
+        }
+        select:focus {
+            border-color: var(--primary-color);
         }
         .toggle-container {
             display: flex;
@@ -52,7 +73,7 @@
             border-color: var(--primary-color);
             background-color: #fff0f0;
         }
-        label {
+        label.radio-label {
             display: flex;
             align-items: center;
             cursor: pointer;
@@ -95,16 +116,45 @@
 </head>
 <body>
     <h3><span>🎙️</span> NativeSound 설정</h3>
+
+    <div class="form-group">
+        <div class="section-title">자막 언어 설정</div>
+        <div style="display: flex; gap: 10px;">
+            <div style="flex: 1;">
+                <label style="font-size: 12px; color: #777;">원본 자막</label>
+                <select id="source_lang">
+                    <option value="auto">자동 감지</option>
+                    <option value="en">영어 (English)</option>
+                    <option value="ja">일본어 (Japanese)</option>
+                    <option value="zh">중국어 (Chinese)</option>
+                    <option value="es">스페인어 (Spanish)</option>
+                    <option value="fr">프랑스어 (French)</option>
+                    <option value="de">독일어 (German)</option>
+                </select>
+            </div>
+            <div style="flex: 1;">
+                <label style="font-size: 12px; color: #777;">발음 표시 언어</label>
+                <select id="target_lang">
+                    <option value="ko">한국어 (Korean)</option>
+                    <option value="en">영어 (English)</option>
+                    <option value="ja">일본어 (Japanese)</option>
+                    <option value="es">스페인어 (Spanish)</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="section-title">발음 표시 모드</div>
     <div class="toggle-container">
         <div class="option-card" id="card-word">
-            <label>
+            <label class="radio-label">
                 <input type="radio" name="pronunciation_mode" value="word">
                 단어별 정확한 발음
             </label>
             <span class="desc">사전에 등재된 표준 발음 기호 기준 (예: Want to -> 원트 투)</span>
         </div>
         <div class="option-card" id="card-conversation">
-            <label>
+            <label class="radio-label">
                 <input type="radio" name="pronunciation_mode" value="conversation">
                 실제 회화 발음 (연음 적용)
             </label>

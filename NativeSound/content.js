@@ -1,38 +1,28 @@
 // content.js
 let currentMode = 'word';
+let sourceLang = 'auto';
+let targetLang = 'ko';
 
 // Get initial setting
-chrome.storage.local.get(['pronunciation_mode'], (result) => {
-    if (result.pronunciation_mode) {
-        currentMode = result.pronunciation_mode;
-    }
+chrome.storage.local.get(['pronunciation_mode', 'source_lang', 'target_lang'], (result) => {
+    if (result.pronunciation_mode) currentMode = result.pronunciation_mode;
+    if (result.source_lang) sourceLang = result.source_lang;
+    if (result.target_lang) targetLang = result.target_lang;
 });
 
 // Listen for setting changes
 chrome.storage.onChanged.addListener((changes, namespace) => {
-    if (namespace === 'local' && changes.pronunciation_mode) {
-        currentMode = changes.pronunciation_mode.newValue;
-        // Optionally trigger an immediate update here
+    if (namespace === 'local') {
+        if (changes.pronunciation_mode) currentMode = changes.pronunciation_mode.newValue;
+        if (changes.source_lang) sourceLang = changes.source_lang.newValue;
+        if (changes.target_lang) targetLang = changes.target_lang.newValue;
     }
 });
 
 // Observer to watch for subtitle changes
 const observer = new MutationObserver((mutations) => {
     mutations.forEach((mutation) => {
-        if (mutation.type === 'childList') {
-            const addedNodes = mutation.addedNodes;
-            addedNodes.forEach((node) => {
-                // Looking for the specific YouTube subtitle element
-                if (node.nodeType === Node.ELEMENT_NODE && node.classList && node.classList.contains('ytp-caption-segment')) {
-                    processCaptionNode(node);
-                } else if (node.nodeType === Node.ELEMENT_NODE && node.querySelector) {
-                     // Sometimes the parent is added
-                     const segments = node.querySelectorAll('.ytp-caption-segment');
-                     segments.forEach(processCaptionNode);
-                }
-            });
-        } else if (mutation.type === 'characterData') {
-             // Handle text changes within existing caption segments. mutation.target is a TextNode.
+        if (mutation.type === 'characterData') {
              let parent = mutation.target.parentElement;
              if (parent && parent.classList && parent.classList.contains('ytp-caption-segment')) {
                  processCaptionNode(parent);
@@ -44,15 +34,21 @@ const observer = new MutationObserver((mutations) => {
              }
         } else if (mutation.type === 'childList' && mutation.target.classList && mutation.target.classList.contains('ytp-caption-segment')) {
              processCaptionNode(mutation.target);
+        } else if (mutation.type === 'childList') {
+            const addedNodes = mutation.addedNodes;
+            addedNodes.forEach((node) => {
+                if (node.nodeType === Node.ELEMENT_NODE && node.classList && node.classList.contains('ytp-caption-segment')) {
+                    processCaptionNode(node);
+                } else if (node.nodeType === Node.ELEMENT_NODE && node.querySelector) {
+                     const segments = node.querySelectorAll('.ytp-caption-segment');
+                     segments.forEach(processCaptionNode);
+                }
+            });
         }
     });
 });
 
 function processCaptionNode(node) {
-    // We need to handle updates to the same node since youtube captions update word-by-word sometimes.
-    // Instead of using a simple attribute, we can compare original text content
-
-    // Find the actual text content by removing the text of any existing pronunciation elements we added
     let cloneNode = node.cloneNode(true);
     let existingPronunciations = cloneNode.querySelectorAll('.native-sound-pronunciation');
     existingPronunciations.forEach(el => el.remove());
@@ -60,48 +56,43 @@ function processCaptionNode(node) {
     const originalText = cloneNode.textContent.trim();
     if (!originalText) return;
 
-    // Check if we already processed this exact text
+    // Source language check
+    if (sourceLang === 'en') {
+        if (!/[a-zA-Z]/.test(originalText)) return;
+    } else {
+        if (!/[a-zA-Z]/.test(originalText)) return;
+    }
+
     const processedTextAttr = node.getAttribute('data-native-sound-processed-text');
     if (processedTextAttr === originalText) {
         return;
     }
 
-    // We have new text, update our marker
     node.setAttribute('data-native-sound-processed-text', originalText);
 
-    // Remove old pronunciation element if it exists so we can re-render it
     const oldPronunciationNode = node.querySelector('.native-sound-pronunciation');
     if (oldPronunciationNode) {
         oldPronunciationNode.remove();
     }
 
-    // We only want to process English text (simple heuristic)
-    if (!/[a-zA-Z]/.test(originalText)) return;
+    const pronunciationText = getPronunciationForSentence(originalText, currentMode, targetLang);
 
-    // In a real scenario, this would call our pronunciation logic
-    // For now, we mock it.
-    const pronunciationText = getPronunciationForSentence(originalText, currentMode);
-
-    if (pronunciationText) {
-        // Create the pronunciation element
+    if (pronunciationText && pronunciationText !== originalText) {
         const pronunciationSpan = document.createElement('span');
         pronunciationSpan.className = 'native-sound-pronunciation';
         pronunciationSpan.textContent = pronunciationText;
 
-        // Append it below the original text
         node.appendChild(pronunciationSpan);
     }
 }
 
-// Start observing the body, wait for the player to load
 const startObserver = () => {
-    const targetNode = document.body; // In youtube, captions are added dynamically to the DOM
+    const targetNode = document.body;
     const config = { childList: true, subtree: true, characterData: true };
     observer.observe(targetNode, config);
     console.log("NativeSound: Observer started.");
 };
 
-// YouTube uses a single-page app architecture, so we need to be careful about navigation
 if (document.body) {
     startObserver();
 } else {
