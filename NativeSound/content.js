@@ -21,9 +21,6 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
 
 // Observer to watch for subtitle changes
 const observer = new MutationObserver((mutations) => {
-    // Only process if target language is Korean (for now, as it's the only supported output)
-    if (targetLang !== 'ko') return;
-
     mutations.forEach((mutation) => {
         if (mutation.type === 'characterData') {
              let parent = mutation.target.parentElement;
@@ -78,7 +75,7 @@ function processCaptionNode(node) {
         oldPronunciationNode.remove();
     }
 
-    const pronunciationText = getPronunciationForSentence(originalText, currentMode);
+    const pronunciationText = getPronunciationForSentence(originalText, currentMode, targetLang);
 
     if (pronunciationText && pronunciationText !== originalText) {
         const pronunciationSpan = document.createElement('span');
