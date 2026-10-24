@@ -15,10 +15,24 @@ document.addEventListener('DOMContentLoaded', () => {
     terminal.scrollTop = terminal.scrollHeight;
   }
 
+  // URL 유효성 검사 추가 (P2-2 반영)
+  function isValidUrl(string) {
+    try {
+      new URL(string);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   startBtn.addEventListener('click', async () => {
     const url = urlInput.value.trim();
     if (!url) {
       appendLog('URL을 입력해주세요.', 'error');
+      return;
+    }
+    if (!isValidUrl(url)) {
+      appendLog('유효하지 않은 URL 형식입니다. http:// 또는 https:// 로 시작하는 전체 URL을 입력하세요.', 'error');
       return;
     }
 
@@ -32,7 +46,6 @@ document.addEventListener('DOMContentLoaded', () => {
     stopBtn.disabled = false;
     appendLog('작업을 시작합니다...', 'system');
 
-    // IPC 통신을 통해 메인 프로세스로 작업 요청
     if (window.electronAPI) {
       window.electronAPI.startAutomation(config);
     } else {
@@ -43,10 +56,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   stopBtn.addEventListener('click', () => {
     appendLog('작업 중지 요청...', 'system');
+    stopBtn.disabled = true; // 중지 버튼 연속 클릭 방지
     if (window.electronAPI) {
       window.electronAPI.stopAutomation();
     }
-    resetUI();
   });
 
   function resetUI() {
@@ -54,15 +67,14 @@ document.addEventListener('DOMContentLoaded', () => {
     stopBtn.disabled = true;
   }
 
-  // 메인 프로세스로부터 로그 메시지 수신
   if (window.electronAPI) {
     window.electronAPI.onLogMessage((event, data) => {
       appendLog(data.message, data.type);
     });
 
     window.electronAPI.onAutomationStopped((event) => {
-      appendLog('자동화 프로세스가 종료되었습니다.', 'system');
-      resetUI();
+      appendLog('자동화 프로세스가 완전히 종료되었습니다.', 'system');
+      resetUI(); // 메인 프로세스에서 종료 처리가 완전히 끝난 후에만 시작 버튼 활성화 (P1-3 반영)
     });
   }
 });

@@ -1,53 +1,18 @@
 const { TicketStrategy } = require('./TicketStrategy');
-const { SeatSelectionUtil } = require('./SeatSelectionUtil');
 
+// P0-2: 미지원 사이트는 명확히 보류(NotImplemented) 처리하여 혼란 방지
 class TicketlinkStrategy extends TicketStrategy {
   async execute() {
-    this.isMonitoring = true;
-    this.sendLog('[Ticketlink] 예매 모니터링을 시작합니다.', 'info');
+    this.sendLog('[Ticketlink] 현재 이 사이트의 자동화 로직은 구현되어 있지 않습니다. (미지원)', 'error');
+    this.sendLog('보안 조치나 복잡한 흐름으로 인해 직접 브라우저에서 수동 예매를 권장합니다.', 'info');
 
     try {
-      await this.page.goto(this.config.url, { waitUntil: 'domcontentloaded' });
-
-      this.sendLog('페이지 로드 완료. (로그인이 필요한 경우 지금 진행해주세요. 15초 대기)', 'system');
-      await this.delay(15000); // 사용자 로그인 대기
-
-      while (this.isMonitoring) {
-        const isButtonActive = await this.page.evaluate(() => {
-          const btn = document.querySelector('a.btn_reserve, button.btn_reserve, .btn-ticketing, .btn_reservation, .btn_buy');
-          return btn && getComputedStyle(btn).display !== 'none' && !btn.disabled && !btn.classList.contains('disabled');
-        });
-
-        if (isButtonActive) {
-          this.sendLog('Ticketlink 예매 활성화 감지! 클릭 시도...', 'success');
-
-          const popupPromise = this.page.context().waitForEvent('page', { timeout: 10000 }).catch(() => null);
-          await this.page.click('a.btn_reserve, button.btn_reserve, .btn-ticketing, .btn_reservation, .btn_buy');
-
-          this.sendLog('예매창/팝업 대기 중...', 'info');
-          const popupPage = await popupPromise;
-          let targetPage = popupPage || this.page;
-          await targetPage.waitForLoadState('domcontentloaded');
-
-          this.sendLog('예매창 진입 완료. DOM 렌더링 대기...', 'info');
-          await targetPage.waitForTimeout(3000);
-
-          await SeatSelectionUtil.selectSeatByPreference(targetPage, this.sendLog, this.config.seatPreference, 'Ticketlink');
-
-          this.sendLog('자동화 단계 완료. 사용자 결제를 대기합니다.', 'success');
-          break;
-        }
-
-        await this.delay(3000);
-        await this.page.reload({ waitUntil: 'domcontentloaded' });
-      }
-
-      if (this.isMonitoring) {
-          this.sendLog('결제가 완료될 때까지 대기합니다. (직접 결제 진행 요망)', 'system');
-      }
-    } catch (error) {
-      if(this.isMonitoring) this.sendLog(`Ticketlink 자동화 중 오류: ${error.message}`, 'error');
+      await this.page.goto(this.config.url);
+      this.sendLog('해당 페이지로 이동했습니다. 직접 진행해주세요.', 'info');
+    } catch(e) {
+      this.sendLog('페이지 이동 실패.', 'error');
     }
   }
 }
+
 module.exports = { TicketlinkStrategy };

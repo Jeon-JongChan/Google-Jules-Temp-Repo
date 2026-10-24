@@ -3,12 +3,9 @@ class SeatSelectionUtil {
     sendLog(`[좌석 선택 유틸] ${site}에서 옵션(${preference})으로 좌석 선택을 시도합니다...`, 'info');
 
     try {
-      // 1. Iframe 파악 (예: 인터파크 ifrmBookStep, ifrmSeat 등)
-      // iframe이 여러 개 겹쳐있을 수 있으므로 모든 프레임을 재귀 탐색하거나 메인 프레임을 기준으로 탐색
       let targetFrame = page.mainFrame();
       const frames = page.frames();
 
-      // 사이트별 주요 좌석 iframe ID 추정
       const seatFrameIds = ['ifrmSeat', 'seatFrame', 'ifrmBookStep', 'oneStopFrame'];
       for (const frame of frames) {
           const name = frame.name();
@@ -20,63 +17,93 @@ class SeatSelectionUtil {
           }
       }
 
-      // 2. 좌석 렌더링(Canvas 또는 DOM) 대기
       sendLog('좌석 DOM 요소 로딩 대기...', 'info');
-      // 시연용 범용 선택자 (실제 사이트는 rect, span.seat 등 다양함)
       const seatSelectors = ['span.seat_available', 'rect[fill="#1e90ff"]', 'li.seat_ok a', '.seatList .active'];
 
-      // 좌석 요소가 나타날 때까지 짧게 대기 (timeout 5초)
       let foundSelector = null;
+      let seatLocators = null;
       for (const selector of seatSelectors) {
-         const count = await targetFrame.locator(selector).count();
-         if (count > 0) {
-             foundSelector = selector;
-             break;
+         try {
+           // 요소가 1개 이상 나타날 때까지 5초 대기
+           await targetFrame.waitForSelector(selector, { state: 'attached', timeout: 5000 });
+           const count = await targetFrame.locator(selector).count();
+           if (count > 0) {
+               foundSelector = selector;
+               seatLocators = targetFrame.locator(selector);
+               break;
+           }
+         } catch (e) {
+           // 해당 선택자가 없으면 계속 탐색
          }
       }
 
       if (!foundSelector) {
-          sendLog('명시적인 좌석 DOM 요소를 찾지 못했습니다. (Canvas 기반이거나 구조 다름). 스킵합니다.', 'error');
-          return;
+          sendLog('명시적인 좌석 DOM 요소를 찾지 못했습니다. (Canvas 기반이거나 이미 매진일 수 있음). 좌석 선택 단계를 건너뜁니다.', 'error');
+          sendLog('이 사이트의 좌석 지도가 Canvas 등 DOM으로 접근할 수 없는 구조라면 수동으로 선택해 주세요.', 'system');
+          return false; // P0-3: 명확히 false 반환
       }
 
-      sendLog(`활성화된 좌석 발견 (선택자: ${foundSelector}). 클릭 시도...`, 'info');
+      const totalSeats = await seatLocators.count();
+      sendLog(`활성화된 좌석 ${totalSeats}개 발견 (선택자: ${foundSelector}). 위치 기반 정렬 시도...`, 'info');
 
-      // 3. 선호 구역에 따른 선택 로직
-      // 실제로는 좌표 계산이나 구역별 리스트 인덱싱이 필요하지만, 여기서는 단순화하여 클릭 시뮬레이션
-      const seats = targetFrame.locator(foundSelector);
-      const totalSeats = await seats.count();
+      // P0-1: boundingBox()를 이용해 화면상 물리적 Y좌표로 정렬
+      const seatData = [];
+      for (let i = 0; i < totalSeats; i++) {
+         const locator = seatLocators.nth(i);
+         try {
+            const box = await locator.boundingBox();
+            if (box) {
+               seatData.push({ index: i, locator: locator, y: box.y, x: box.x });
+            }
+         } catch(e) {
+            // 보이지 않는 요소 무시
+         }
+      }
 
-      let targetIndex = 0;
-      if (preference === 'any' || totalSeats === 1) {
-          targetIndex = 0;
+      if (seatData.length === 0) {
+          sendLog('표시되는 좌석 요소의 좌표를 추출할 수 없습니다. 클릭 불가.', 'error');
+          return false;
+      }
+
+      // 화면상 Y좌표(위->아래) 기준으로 정렬 (Y값이 작을수록 화면 위쪽 = 보통 앞쪽 좌석)
+      seatData.sort((a, b) => a.y - b.y);
+
+      let targetSeat = seatData[0]; // 기본은 가장 앞(위)
+
+      if (preference === 'any' || seatData.length === 1) {
+          targetSeat = seatData[0];
       } else if (preference === 'front') {
-          targetIndex = 0; // 배열의 앞쪽
+          targetSeat = seatData[0]; // 화면 위쪽
       } else if (preference === 'middle') {
-          targetIndex = Math.floor(totalSeats / 2);
+          targetSeat = seatData[Math.floor(seatData.length / 2)]; // 화면 중간
       } else if (preference === 'back') {
-          targetIndex = totalSeats - 1;
+          targetSeat = seatData[seatData.length - 1]; // 화면 아래쪽
       }
 
-      // 좌석 클릭
-      await seats.nth(targetIndex).click();
-      sendLog(`좌석 1개 선택 완료 (인덱스: ${targetIndex}).`, 'success');
+      await targetSeat.locator.click();
+      sendLog(`좌석 선택 완료 (옵션: ${preference}, Y좌표: ${targetSeat.y}).`, 'success');
 
-      // 4. '좌석선택 완료' 또는 '다음단계' 버튼 클릭
       const nextBtnSelectors = ['a#btnNext', 'button.btn_next', 'a.nextStep'];
+      let clickedNext = false;
       for (const nextBtn of nextBtnSelectors) {
           const nextCount = await targetFrame.locator(nextBtn).count();
           if (nextCount > 0) {
               await targetFrame.locator(nextBtn).first().click();
               sendLog('다음 단계 버튼 클릭 완료.', 'success');
+              clickedNext = true;
               break;
           }
       }
 
-      sendLog('좌석 선택 및 다음 단계 진입 성공.', 'success');
+      if (!clickedNext) {
+          sendLog('다음 단계 버튼을 찾지 못했습니다. 결제창 진입을 직접 진행해 주세요.', 'info');
+      }
+
+      return true; // 성공 시 true
 
     } catch (error) {
-      sendLog(`좌석 선택 중 오류 발생 (DOM 구조 변경일 수 있음): ${error.message}`, 'error');
+      sendLog(`좌석 선택 중 예상치 못한 오류 발생: ${error.message}`, 'error');
+      return false;
     }
   }
 }

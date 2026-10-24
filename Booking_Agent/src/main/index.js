@@ -19,7 +19,6 @@ function createWindow() {
 
   mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
 
-  // 로깅 함수: 렌더러의 터미널 창으로 전송
   const sendLog = (message, type = 'info') => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('log-message', { message, type });
@@ -27,6 +26,8 @@ function createWindow() {
   };
 
   automationService = new AutomationService(sendLog);
+  // P1-4: OS 임시 폴더 대신 Electron의 사용자 데이터 폴더 사용
+  automationService.setUserDataDir(app.getPath('userData'));
 }
 
 app.whenReady().then(() => {
@@ -55,6 +56,7 @@ ipcMain.on('start-automation', async (event, config) => {
 ipcMain.on('stop-automation', async (event) => {
   if (automationService) {
     await automationService.stop();
+    // 브라우저 닫기 및 로직 정리가 모두 끝난 후 renderer로 완료 신호 전송 (P1-3)
     event.sender.send('automation-stopped');
   }
 });
