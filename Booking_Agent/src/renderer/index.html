@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>티켓 예매 자동화 봇</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>티켓 예매 반자동화 봇</h1>
+      <p>원하는 공연 URL을 입력하고 시작 버튼을 누르세요.</p>
+    </header>
+
+    <main>
+      <section class="controls">
+        <div class="input-group">
+          <label for="url-input">대상 사이트 URL (공연/전시 상세 페이지)</label>
+          <input type="text" id="url-input" placeholder="https://ticket.interpark.com/..." autocomplete="off">
+        </div>
+
+        <div class="options-group">
+          <div class="option">
+            <label for="site-select">대상 사이트 선택</label>
+            <select id="site-select">
+              <option value="auto">자동 감지 (URL 기반)</option>
+              <option value="interpark">인터파크 티켓</option>
+              <option value="ticketlink">티켓링크</option>
+              <option value="yes24">YES24 티켓</option>
+              <option value="melon">멜론티켓</option>
+              <option value="sac">예술의전당</option>
+              <option value="sejong">세종문화회관</option>
+              <option value="ntok">국립극장</option>
+              <option value="lgart">LG아트센터 서울</option>
+              <option value="lotte">롯데콘서트홀</option>
+              <option value="livenation">라이브네이션 코리아</option>
+              <option value="clubbalcony">클럽발코니</option>
+              <option value="timeticket">타임티켓</option>
+            </select>
+          </div>
+
+          <div class="option">
+            <label for="seat-preference">선호 좌석 위치</label>
+            <select id="seat-preference">
+              <option value="any">상관없음 (가장 빠른 예매)</option>
+              <option value="front">앞쪽</option>
+              <option value="middle">중간</option>
+              <option value="back">뒤쪽</option>
+            </select>
+          </div>
+        </div>
+
+        <button id="start-btn" class="btn primary">크롤링 시작</button>
+        <button id="stop-btn" class="btn danger" disabled>중지</button>
+      </section>
+
+      <section class="log-section">
+        <h3>작업 진행 로그</h3>
+        <div class="terminal" id="log-terminal">
+          <div class="log-entry system">시스템 준비 완료. URL을 입력하고 시작하세요.</div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script src="renderer.js"></script>
+</body>
+</html>

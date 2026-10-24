@@ -1,0 +1,30 @@
+{
+  "name": "booking_agent",
+  "version": "1.0.0",
+  "description": "A semi-automated booking agent for various ticket sites.",
+  "main": "src/main/index.js",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "author": "Jules",
+  "license": "ISC",
+  "dependencies": {
+    "playwright": "^1.50.1"
+  },
+  "devDependencies": {
+    "electron": "^34.5.8",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.example.bookingagent",
+    "productName": "Booking Agent",
+    "win": {
+      "target": "portable"
+    },
+    "directories": {
+      "output": "dist"
+    }
+  }
+}
