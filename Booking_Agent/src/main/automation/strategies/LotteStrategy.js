@@ -1,18 +1,44 @@
 const { TicketStrategy } = require('./TicketStrategy');
+const { SeatSelectionUtil } = require('./SeatSelectionUtil');
 
-// [Lotte] 자동화 로직 구현 보류 (보안/캡챠 등)
 class LotteStrategy extends TicketStrategy {
   async execute() {
-    this.sendLog('[Lotte] 현재 이 사이트의 자동화 로직은 구현되어 있지 않습니다.', 'error');
-    this.sendLog('보안 조치나 복잡한 흐름으로 인해 수동 예매를 권장합니다.', 'info');
+    this.isMonitoring = true;
+    this.sendLog('[롯데콘서트홀] 예매 모니터링을 시작합니다.', 'info');
 
     try {
-      await this.page.goto(this.config.url);
-      this.sendLog('해당 페이지로 이동했습니다. 직접 진행해주세요.', 'info');
-    } catch(e) {
-      this.sendLog('페이지 이동 실패.', 'error');
+      await this.page.goto(this.config.url, { waitUntil: 'domcontentloaded' });
+      this.sendLog('페이지 로드 완료. 예매 버튼 활성화를 감시합니다.', 'info');
+
+      while (this.isMonitoring) {
+        const isButtonActive = await this.page.evaluate(() => {
+          const btn = document.querySelector('.btn_reserve');
+          return btn && !btn.disabled;
+        });
+
+        if (isButtonActive) {
+          this.sendLog('롯데콘서트홀 예매 버튼 활성화 감지! 클릭 시도...', 'success');
+          await this.page.click('.btn_reserve');
+
+          this.sendLog('예매창 대기 중...', 'info');
+          await this.delay(2000);
+
+          await SeatSelectionUtil.selectSeatByPreference(this.page, this.sendLog, this.config.seatPreference);
+
+          this.sendLog('자동화 단계 완료. 사용자 결제를 대기합니다.', 'success');
+          break;
+        }
+
+        await this.delay(3000);
+        await this.page.reload({ waitUntil: 'domcontentloaded' });
+      }
+
+      if (this.isMonitoring) {
+          this.sendLog('결제가 완료될 때까지 대기합니다. (직접 결제 진행 요망)', 'system');
+      }
+    } catch (error) {
+      if(this.isMonitoring) this.sendLog(`롯데콘서트홀 자동화 중 오류: ${error.message}`, 'error');
     }
   }
 }
-
 module.exports = { LotteStrategy };
