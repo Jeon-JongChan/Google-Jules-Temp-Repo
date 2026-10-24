@@ -1,4 +1,6 @@
 const esbuild = require("esbuild");
+const fs = require("fs");
+const path = require("path");
 
 const production = process.argv.includes('--production');
 const watch = process.argv.includes('--watch');
@@ -23,6 +25,28 @@ const esbuildProblemMatcherPlugin = {
     },
 };
 
+// WASM assets cannot be bundled into JS; copy only the files the runtime
+// actually loads so the packaged extension does not need node_modules.
+// - tree-sitter.wasm (the web-tree-sitter runtime) must sit next to each
+//   bundle that loads the parser (the Emscripten glue resolves it relative
+//   to the bundle file).
+// - Grammar WASM files are loaded by src/core/parser.ts from dist/wasm.
+const wasmAssets = [
+    ['node_modules/web-tree-sitter/tree-sitter.wasm', 'dist/extension/tree-sitter.wasm'],
+    ['node_modules/web-tree-sitter/tree-sitter.wasm', 'dist/mcp/tree-sitter.wasm'],
+    ['node_modules/tree-sitter-wasms/out/tree-sitter-javascript.wasm', 'dist/wasm/tree-sitter-javascript.wasm'],
+    ['node_modules/tree-sitter-wasms/out/tree-sitter-typescript.wasm', 'dist/wasm/tree-sitter-typescript.wasm'],
+    ['node_modules/tree-sitter-wasms/out/tree-sitter-python.wasm', 'dist/wasm/tree-sitter-python.wasm'],
+];
+
+function copyWasmAssets() {
+    for (const [src, dest] of wasmAssets) {
+        fs.mkdirSync(path.dirname(dest), { recursive: true });
+        fs.copyFileSync(src, dest);
+    }
+    console.log('[assets] wasm files copied to dist/');
+}
+
 async function main() {
     const extensionCtx = await esbuild.context({
         entryPoints: ['src/extension/extension.ts'],
@@ -33,7 +57,7 @@ async function main() {
         sourcesContent: false,
         platform: 'node',
         outfile: 'dist/extension/extension.js',
-        external: ['vscode', 'tree-sitter', 'tree-sitter-javascript', 'tree-sitter-typescript', 'tree-sitter-python'],
+        external: ['vscode'],
         logLevel: 'silent',
         plugins: [
             esbuildProblemMatcherPlugin,
@@ -49,7 +73,7 @@ async function main() {
         sourcesContent: false,
         platform: 'node',
         outfile: 'dist/mcp/server.js',
-        external: ['vscode', 'tree-sitter', 'tree-sitter-javascript', 'tree-sitter-typescript', 'tree-sitter-python'],
+        external: [],
         logLevel: 'silent',
         plugins: [
             esbuildProblemMatcherPlugin,
@@ -62,6 +86,7 @@ async function main() {
     } else {
         await extensionCtx.rebuild();
         await mcpCtx.rebuild();
+        copyWasmAssets();
         await extensionCtx.dispose();
         await mcpCtx.dispose();
     }

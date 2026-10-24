@@ -49,10 +49,10 @@ You will need [Node.js](https://nodejs.org/) (v18 or higher) and [npm](https://n
    npm install
    ```
 
-3. Compile the TypeScript code and run esbuild:
-   TypeScript 코드를 컴파일하고 esbuild를 실행합니다:
+3. Bundle the extension and MCP server with esbuild (this produces a self-contained `dist/` with no runtime `node_modules`):
+   esbuild로 확장 프로그램과 MCP 서버를 번들링합니다 (런타임 `node_modules`가 필요 없는 자체 완결형 `dist/`가 생성됩니다):
    ```bash
-   npm run compile
+   npm run bundle
    ```
 
 4. Run tests to ensure everything is working correctly:
