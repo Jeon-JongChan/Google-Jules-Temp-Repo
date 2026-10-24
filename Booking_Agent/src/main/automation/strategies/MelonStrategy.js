@@ -1,18 +1,44 @@
 const { TicketStrategy } = require('./TicketStrategy');
+const { SeatSelectionUtil } = require('./SeatSelectionUtil');
 
-// P0-2: 미지원 사이트는 명확히 보류(NotImplemented) 처리하여 혼란 방지
 class MelonStrategy extends TicketStrategy {
   async execute() {
-    this.sendLog('[Melon] 현재 이 사이트의 자동화 로직은 구현되어 있지 않습니다. (미지원)', 'error');
-    this.sendLog('보안 조치나 복잡한 흐름으로 인해 직접 브라우저에서 수동 예매를 권장합니다.', 'info');
-
+    this.isMonitoring = true;
+    this.sendLog('[멜론티켓] 예매 모니터링을 시작합니다.', 'info');
     try {
-      await this.page.goto(this.config.url);
-      this.sendLog('해당 페이지로 이동했습니다. 직접 진행해주세요.', 'info');
-    } catch(e) {
-      this.sendLog('페이지 이동 실패.', 'error');
+      await this.page.goto(this.config.url, { waitUntil: 'domcontentloaded' });
+      let isLoggedIn = false;
+      for (let i = 0; i < 30; i++) {
+        if (!this.isMonitoring) return;
+        isLoggedIn = await this.page.evaluate(() => !!document.querySelector('.util_logout, a[href*="logout"]'));
+        if (isLoggedIn) break;
+        if (i === 0) this.sendLog('로그인이 필요합니다.', 'info');
+        await this.delay(1000);
+      }
+      let attempt = 0;
+      while (this.isMonitoring && attempt < 60) {
+        attempt++;
+        const isButtonActive = await this.page.evaluate(() => {
+          const btn = document.querySelector('button#ticketReservation_Btn, .btn_ticketing');
+          return btn && !btn.disabled && !btn.classList.contains('disabled');
+        });
+        if (isButtonActive) {
+          this.sendLog('멜론티켓 예매 버튼 활성화 감지! 클릭 시도...', 'success');
+          const popupPromise = this.page.context().waitForEvent('page', { timeout: 10000 }).catch(() => null);
+          await this.page.click('button#ticketReservation_Btn, .btn_ticketing');
+          const popupPage = await popupPromise;
+          let targetPage = popupPage || this.page;
+          await targetPage.waitForLoadState('domcontentloaded');
+          await targetPage.waitForTimeout(3000);
+          await SeatSelectionUtil.selectSeatByPreference(targetPage, this.sendLog, this.config.seatPreference, 'melon');
+          break;
+        }
+        await this.delay(3000 + (attempt * 100) + Math.floor(Math.random() * 500));
+        await this.page.reload({ waitUntil: 'domcontentloaded' });
+      }
+    } catch (error) {
+      if(this.isMonitoring) this.sendLog(`멜론티켓 자동화 중 오류: ${error.message}`, 'error');
     }
   }
 }
-
 module.exports = { MelonStrategy };

@@ -1,18 +1,35 @@
 const { TicketStrategy } = require('./TicketStrategy');
+const { SeatSelectionUtil } = require('./SeatSelectionUtil');
 
-// P0-2: 미지원 사이트는 명확히 보류(NotImplemented) 처리하여 혼란 방지
 class LotteStrategy extends TicketStrategy {
   async execute() {
-    this.sendLog('[Lotte] 현재 이 사이트의 자동화 로직은 구현되어 있지 않습니다. (미지원)', 'error');
-    this.sendLog('보안 조치나 복잡한 흐름으로 인해 직접 브라우저에서 수동 예매를 권장합니다.', 'info');
-
+    this.isMonitoring = true;
+    this.sendLog('[Lotte] 예매 모니터링을 시작합니다.', 'info');
     try {
-      await this.page.goto(this.config.url);
-      this.sendLog('해당 페이지로 이동했습니다. 직접 진행해주세요.', 'info');
-    } catch(e) {
-      this.sendLog('페이지 이동 실패.', 'error');
+      await this.page.goto(this.config.url, { waitUntil: 'domcontentloaded' });
+      for (let i = 0; i < 20; i++) { if(!this.isMonitoring) return; await this.delay(1000); }
+      let attempt = 0;
+      while (this.isMonitoring && attempt < 60) {
+        attempt++;
+        const isButtonActive = await this.page.evaluate(() => {
+          const btn = document.querySelector('.btn_reserve, .btn-ticketing, .btn_reservation, .buy-tickets-button, .btn_buy');
+          return btn && !btn.classList.contains('disabled') && getComputedStyle(btn).display !== 'none';
+        });
+        if (isButtonActive) {
+          this.sendLog('Lotte 예매 버튼 활성화 감지!', 'success');
+          const popupPromise = this.page.context().waitForEvent('page', { timeout: 10000 }).catch(() => null);
+          await this.page.click('.btn_reserve, .btn-ticketing, .btn_reservation, .buy-tickets-button, .btn_buy');
+          let targetPage = (await popupPromise) || this.page;
+          await targetPage.waitForTimeout(3000);
+          await SeatSelectionUtil.selectSeatByPreference(targetPage, this.sendLog, this.config.seatPreference, 'Lotte');
+          break;
+        }
+        await this.delay(3000 + (attempt * 100) + Math.floor(Math.random() * 500));
+        await this.page.reload({ waitUntil: 'domcontentloaded' });
+      }
+    } catch (error) {
+      if(this.isMonitoring) this.sendLog(`Lotte 오류: ${error.message}`, 'error');
     }
   }
 }
-
 module.exports = { LotteStrategy };

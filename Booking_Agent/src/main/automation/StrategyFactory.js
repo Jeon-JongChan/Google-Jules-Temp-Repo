@@ -1,35 +1,33 @@
 const { InterparkStrategy } = require('./strategies/InterparkStrategy');
+const { TicketlinkStrategy } = require('./strategies/TicketlinkStrategy');
+const { Yes24Strategy } = require('./strategies/Yes24Strategy');
+const { MelonStrategy } = require('./strategies/MelonStrategy');
+const { SacStrategy } = require('./strategies/SacStrategy');
+const { SejongStrategy } = require('./strategies/SejongStrategy');
+const { NtokStrategy } = require('./strategies/NtokStrategy');
+const { LgartStrategy } = require('./strategies/LgartStrategy');
+const { LotteStrategy } = require('./strategies/LotteStrategy');
+const { LivenationStrategy } = require('./strategies/LivenationStrategy');
+const { ClubbalconyStrategy } = require('./strategies/ClubbalconyStrategy');
+const { TimeticketStrategy } = require('./strategies/TimeticketStrategy');
 const { NotImplementedStrategy } = require('./strategies/NotImplementedStrategy');
 
 class StrategyFactory {
   static getStrategy(siteId, page, sendLog, config) {
     switch (siteId) {
-      case 'interpark':
-        return new InterparkStrategy(page, sendLog, config);
-      case 'ticketlink':
-        return new NotImplementedStrategy(page, sendLog, config, '티켓링크');
-      case 'yes24':
-        return new NotImplementedStrategy(page, sendLog, config, 'YES24 티켓');
-      case 'melon':
-        return new NotImplementedStrategy(page, sendLog, config, '멜론티켓');
-      case 'sac':
-        return new NotImplementedStrategy(page, sendLog, config, '예술의전당');
-      case 'sejong':
-        return new NotImplementedStrategy(page, sendLog, config, '세종문화회관');
-      case 'ntok':
-        return new NotImplementedStrategy(page, sendLog, config, '국립극장');
-      case 'lgart':
-        return new NotImplementedStrategy(page, sendLog, config, 'LG아트센터 서울');
-      case 'lotte':
-        return new NotImplementedStrategy(page, sendLog, config, '롯데콘서트홀');
-      case 'livenation':
-        return new NotImplementedStrategy(page, sendLog, config, '라이브네이션 코리아');
-      case 'clubbalcony':
-        return new NotImplementedStrategy(page, sendLog, config, '클럽발코니');
-      case 'timeticket':
-        return new NotImplementedStrategy(page, sendLog, config, '타임티켓');
-      default:
-        return new NotImplementedStrategy(page, sendLog, config, '알 수 없는 사이트');
+      case 'interpark': return new InterparkStrategy(page, sendLog, config);
+      case 'ticketlink': return new TicketlinkStrategy(page, sendLog, config);
+      case 'yes24': return new Yes24Strategy(page, sendLog, config);
+      case 'melon': return new MelonStrategy(page, sendLog, config);
+      case 'sac': return new SacStrategy(page, sendLog, config);
+      case 'sejong': return new SejongStrategy(page, sendLog, config);
+      case 'ntok': return new NtokStrategy(page, sendLog, config);
+      case 'lgart': return new LgartStrategy(page, sendLog, config);
+      case 'lotte': return new LotteStrategy(page, sendLog, config);
+      case 'livenation': return new LivenationStrategy(page, sendLog, config);
+      case 'clubbalcony': return new ClubbalconyStrategy(page, sendLog, config);
+      case 'timeticket': return new TimeticketStrategy(page, sendLog, config);
+      default: return new NotImplementedStrategy(page, sendLog, config, '알 수 없는 사이트');
     }
   }
 
@@ -38,7 +36,6 @@ class StrategyFactory {
       const url = new URL(urlString);
       const hostname = url.hostname;
 
-      // P2-1: 호스트네임 기반 정확한 판별
       if (hostname.endsWith('interpark.com')) return 'interpark';
       if (hostname.endsWith('ticketlink.co.kr')) return 'ticketlink';
       if (hostname.endsWith('yes24.com')) return 'yes24';
