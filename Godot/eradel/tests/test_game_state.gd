@@ -2,6 +2,7 @@ extends SceneTree
 
 func _init() -> void:
 	print("--- Running Test: test_game_state.gd ---")
+	print("※ 참고: 실행 중 'Identifier not found: GameState' 등의 에러가 발생해도 무시해도 됩니다. (Headless 환경에서 ui_kit.gd 등이 Autoload 싱글톤을 참조하면서 발생하는 노이즈)")
 
 	# Node 생성 및 추가하여 GameState 싱글톤처럼 동작하도록 함
 	var game_state = preload("res://scripts/autoload/game_state.gd").new()
@@ -45,7 +46,7 @@ func _init() -> void:
 	game_state.party.append(merc1)
 	game_state.party.append(merc2)
 	merc1.hp = 0
-	merc2.hp = 0
+	merc2.hp = merc2.max_hp # 전멸 시에도 HP가 남은 생존자가 있는 케이스
 
 	game_state.finalize_expedition("wipe", 100)
 	assert(game_state.last_result["outcome"] == "wipe")

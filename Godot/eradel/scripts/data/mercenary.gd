@@ -14,6 +14,7 @@ enum Status { READY, ON_EXPEDITION, MISSING, DEAD }
 @export var attack: int = 10
 
 @export var hp: int = 80
+# 패널티는 프로토타입 단계에서는 전투 능력치에 영향을 주지 않으며 순수 기록용으로 사용됨
 @export var penalties: Array[String] = []
 @export var status: int = Status.READY
 
