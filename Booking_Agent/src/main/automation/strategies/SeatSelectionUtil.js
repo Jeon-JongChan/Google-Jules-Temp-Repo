@@ -24,8 +24,18 @@ class SeatSelectionUtil {
       let seatLocators = null;
       for (const selector of seatSelectors) {
          try {
-           // 요소가 1개 이상 나타날 때까지 5초 대기
-           await targetFrame.waitForSelector(selector, { state: 'attached', timeout: 5000 });
+           // 요소가 1개 이상 나타날 때까지 대기
+           // P2-3: 대기 중 취소 로직을 위해 Promise.race 적용
+           let waitPromise = targetFrame.waitForSelector(selector, { state: 'attached', timeout: 5000 });
+           if (page._abortController) {
+               waitPromise = Promise.race([
+                   waitPromise,
+                   new Promise((_, reject) => {
+                       page._abortController.signal.addEventListener('abort', () => reject(new Error('AbortError')), {once: true});
+                   })
+               ]);
+           }
+           await waitPromise;
            const count = await targetFrame.locator(selector).count();
            if (count > 0) {
                foundSelector = selector;

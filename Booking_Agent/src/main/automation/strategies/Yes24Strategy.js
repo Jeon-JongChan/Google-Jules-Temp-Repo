@@ -1,3 +1,4 @@
+// ※ 주석: 각 예매 사이트의 DOM 구조(로그인/예매 버튼/좌석)는 캡차, 보안 팝업, 잦은 리뉴얼 등으로 인해 완벽한 실측이 불가하여 추측성(휴리스틱) 선택자를 사용했습니다.
 const { TicketStrategy } = require('./TicketStrategy');
 const { SeatSelectionUtil } = require('./SeatSelectionUtil');
 
@@ -42,7 +43,7 @@ class Yes24Strategy extends TicketStrategy {
           let targetPage = popupPage || this.page;
           await targetPage.waitForLoadState('domcontentloaded');
 
-          this.sendLog('달력/회차 선택 단계는 수동 진행이 필요합니다. 이후 좌석 선택 자동화 실행', 'info');
+          this.sendLog('달력/회차 위젯의 복잡성으로 인해 자동화가 어렵습니다. 수동으로 날짜와 회차를 선택해 주세요.', 'info');
           await targetPage.waitForTimeout(3000);
 
           const seatSuccess = await SeatSelectionUtil.selectSeatByPreference(targetPage, this.sendLog, this.config.seatPreference, 'yes24');
