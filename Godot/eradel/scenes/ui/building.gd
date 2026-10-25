@@ -69,7 +69,12 @@ func _building_card(building: String) -> Control:
 
 	var right := VBoxContainer.new()
 	right.add_theme_constant_override("separation", 2)
-	if lv >= 5:
+	if building in ["마탑", "모험가 길드", "영주 저택", "잡화점"]:
+		right.add_child(UiKit.label("미구현 (예정)", 12, UiKit.TEXT3))
+		var btn := UiKit.button("업그레이드 불가", UiKit.TEXT3)
+		btn.disabled = true
+		right.add_child(btn)
+	elif lv >= 5:
 		right.add_child(UiKit.label("최대 레벨", 12, UiKit.GOLD))
 	else:
 		var c := GameState.upgrade_cost(building)

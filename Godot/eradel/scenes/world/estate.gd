@@ -103,13 +103,13 @@ func _build_center() -> Control:
 	v.add_theme_constant_override("separation", 10)
 	panel.add_child(v)
 
-	# 영지 지도(임시: 텍스트 카드)
+	# 영지 지도
 	v.add_child(UiKit.label("영지 지도", 11, UiKit.TEXT2))
 	var map := UiKit.panel(UiKit.BG3, UiKit.BORDER)
 	var map_v := VBoxContainer.new()
 	map.add_child(map_v)
 	map_v.add_child(UiKit.label("왕도 ─ 영지 ─ 차원문 ─ 바다", 14, UiKit.TEXT))
-	map_v.add_child(UiKit.label("제국의 끝자락, 방치된 변경 영지", 12, UiKit.TEXT3))
+	map_v.add_child(UiKit.label("제국의 끝자락, 방치된 변경 영지 (추후 시각적 지도 구현 예정)", 12, UiKit.TEXT3))
 	v.add_child(map)
 
 	# 경보
@@ -118,7 +118,7 @@ func _build_center() -> Control:
 		var av := VBoxContainer.new()
 		alert.add_child(av)
 		av.add_child(UiKit.label("⚠ 던전 경보", 13, UiKit.RED))
-		av.add_child(UiKit.label("활성도가 높습니다. 방치 시 침공 위험.", 12, UiKit.TEXT2))
+		av.add_child(UiKit.label("활성도가 높습니다. 몬스터가 점차 강해집니다.", 12, UiKit.TEXT2))
 		v.add_child(alert)
 
 	v.add_child(UiKit.hsep(4))

@@ -3,7 +3,7 @@ extends Resource
 
 ## 용병 한 명. 런타임 엔티티지만 추후 저장 대비 Resource 로 둔다.
 
-enum Status { READY, ON_EXPEDITION, TREATING, MISSING, DEAD }
+enum Status { READY, ON_EXPEDITION, MISSING, DEAD }
 
 @export var merc_name: String = "이름 없음"
 @export var category: String = "전사"
@@ -13,9 +13,9 @@ enum Status { READY, ON_EXPEDITION, TREATING, MISSING, DEAD }
 @export var max_hp: int = 80
 @export var attack: int = 10
 
-var hp: int = 80
-var penalties: Array[String] = []
-var status: int = Status.READY
+@export var hp: int = 80
+@export var penalties: Array[String] = []
+@export var status: int = Status.READY
 
 
 static func create_random(grade: String, rng: RandomNumberGenerator) -> Mercenary:
@@ -49,7 +49,6 @@ func status_text() -> String:
 	match status:
 		Status.READY: return "대기"
 		Status.ON_EXPEDITION: return "원정중"
-		Status.TREATING: return "치료중"
 		Status.MISSING: return "실종"
 		Status.DEAD: return "사망"
 		_: return "?"
