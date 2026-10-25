@@ -205,11 +205,13 @@ function getPronunciationForSentence(sentence, mode, targetLang = 'ko') {
 
     if (mode === 'conversation') {
         if (targetLang === 'ko') {
-            // 구문의 길이가 긴 것부터 치환하도록 정렬
-            const sortedMappings = Object.entries(conversationalMapping)
-                .sort((a, b) => b[0].length - a[0].length);
+            // 구문의 길이가 긴 것부터 치환하도록 정렬 (캐싱을 통한 성능 개선)
+            if (!this.cachedSortedMappings) {
+                this.cachedSortedMappings = Object.entries(conversationalMapping)
+                    .sort((a, b) => b[0].length - a[0].length);
+            }
 
-            for (const [phrase, pronunciation] of sortedMappings) {
+            for (const [phrase, pronunciation] of this.cachedSortedMappings) {
                 const regex = new RegExp(`\\b${phrase}\\b`, 'gi');
                 processedSentence = processedSentence.replace(regex, pronunciation);
             }

@@ -30,15 +30,9 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
     }
 });
 
-// Observer to watch for subtitle changes
+// Observer to watch for subtitle changes (only for the caption container)
 const observer = new MutationObserver((mutations) => {
     mutations.forEach((mutation) => {
-        // 자막과 관련된 변경인지 확인하기 위해 필터링 (성능 개선)
-        const isCaptionRelated = (node) => {
-            if (!node || node.nodeType !== Node.ELEMENT_NODE) return false;
-            return node.classList && (node.classList.contains('ytp-caption-segment') || node.classList.contains('ytp-caption-window-container') || node.closest('.ytp-caption-window-container'));
-        };
-
         if (mutation.type === 'characterData') {
              let parent = mutation.target.parentElement;
              if (parent && parent.classList && parent.classList.contains('ytp-caption-segment')) {
@@ -52,14 +46,6 @@ const observer = new MutationObserver((mutations) => {
         } else if (mutation.type === 'childList' && mutation.target.classList && mutation.target.classList.contains('ytp-caption-segment')) {
              processCaptionNode(mutation.target);
         } else if (mutation.type === 'childList') {
-            // Check if mutation happened inside the caption container to improve performance
-            let parent = mutation.target;
-            if (parent && parent.nodeType === Node.ELEMENT_NODE) {
-                if (!parent.classList.contains('ytp-caption-segment') && !parent.classList.contains('ytp-caption-window-container') && !parent.closest('.ytp-caption-window-container')) {
-                    return; // 자막 컨테이너 외부의 변경은 무시
-                }
-            }
-
             const addedNodes = mutation.addedNodes;
 
             // 만약 추가된 노드가 모두 발음 표시용 span 이라면 무시 (이중 처리 방지)
@@ -141,19 +127,55 @@ function processCaptionNode(node) {
     }
 }
 
-const startObserver = () => {
-    // 자막 컨테이너가 나타나기를 기다렸다가 감시 범위를 좁히는 로직이 바람직하지만,
-    // 전체를 감시하더라도 자막 컨테이너 내의 변화가 아닐 경우 조기 반환하도록 성능 개선
-    const targetNode = document.body;
-    const config = { childList: true, subtree: true, characterData: true };
+let checkInterval = null;
 
-    // Performance improvement on observer callback: Early return if mutation is entirely outside caption container.
-    // However, MutationObserver is already instantiated with a callback above.
-    observer.observe(targetNode, config);
+const startCaptionObserver = (container) => {
+    const config = { childList: true, subtree: true, characterData: true };
+    observer.observe(container, config);
+
+    // 주기적으로 컨테이너가 DOM에 여전히 존재하는지 체크하여, 삭제되었으면 다시 찾도록 함.
+    // document.body의 subtree 전체를 감시하는 containerRemovalObserver는 성능 저하를 유발하므로 setInterval 사용.
+    if (checkInterval) clearInterval(checkInterval);
+    checkInterval = setInterval(() => {
+        if (!document.body.contains(container)) {
+            observer.disconnect();
+            clearInterval(checkInterval);
+            startBodyObserver();
+        }
+    }, 2000);
+};
+
+const startBodyObserver = () => {
+    // 1. 자막 컨테이너가 이미 있는지 확인
+    let container = document.querySelector('.ytp-caption-window-container');
+    if (container) {
+        startCaptionObserver(container);
+        return;
+    }
+
+    // 2. 없다면 MutationObserver 대신 setInterval로 가볍게 폴링하여 기다림. (body subtree 감시 지양)
+    let attempts = 0;
+    const maxAttempts = 30; // 30번 (약 15초) 시도
+
+    if (checkInterval) clearInterval(checkInterval);
+    checkInterval = setInterval(() => {
+        container = document.querySelector('.ytp-caption-window-container');
+        if (container) {
+            clearInterval(checkInterval);
+            startCaptionObserver(container);
+        } else {
+            attempts++;
+            if (attempts >= maxAttempts) {
+                // 시간 초과 시 fallback: 불가피하게 body에 기존처럼 넓은 observer 부착
+                clearInterval(checkInterval);
+                observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+            }
+        }
+    }, 500);
 };
 
 if (document.body) {
-    startObserver();
+    startBodyObserver();
 } else {
-    document.addEventListener('DOMContentLoaded', startObserver);
+    document.addEventListener('DOMContentLoaded', startBodyObserver);
 }

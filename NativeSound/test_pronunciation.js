@@ -38,6 +38,11 @@ assertEqual(evaluate("getPronunciationForSentence('LET IT GO', 'conversation', '
 // Test 4: Sentence Mode (Conversation - "LET IT")
 assertEqual(evaluate("getPronunciationForSentence('LET IT BE', 'conversation', 'ko')"), '레릿 베', 'Conversation Mode - Shorter phrase replacement ("LET IT")');
 
+// Test 4-1: Sentence Mode (Conversation - Multi-phrase matching priority)
+// "WHAT ARE YOU DOING" includes "WHAT ARE YOU" mapping and "DOING" mapped by word.
+// Note: "DOING" is in CMUDict as "D UW1 IH0 NG", mapped to "ㄷ우이ㅇ" by phonemesToKorean.
+assertEqual(evaluate("getPronunciationForSentence('WHAT ARE YOU DOING', 'conversation', 'ko')"), '와라유 ㄷ우이ㅇ', 'Conversation Mode - Multi-phrase matching ("WHAT ARE YOU")');
+
 // Test 5: Non-Korean Target Language
 assertEqual(evaluate("getPronunciationForWord('APPLE', 'word', 'ja')"), 'APPLE', 'Non-Korean Target Lang - Should fallback to uppercase word');
 assertEqual(evaluate("getPronunciationForSentence('LET IT GO', 'conversation', 'es')"), 'LET IT GO', 'Non-Korean Target Lang Sentence - Should fallback to uppercase words');
