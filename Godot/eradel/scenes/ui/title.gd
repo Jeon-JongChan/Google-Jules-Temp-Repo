@@ -46,9 +46,10 @@ func _ready() -> void:
 	new_btn.pressed.connect(_on_new_game)
 	box.add_child(new_btn)
 
-	var load_btn := UiKit.button("불러오기")
+	var load_btn := UiKit.button("불러오기 (미구현)")
 	load_btn.custom_minimum_size = Vector2(220, 40)
 	load_btn.disabled = true
+	load_btn.visible = false
 	box.add_child(load_btn)
 
 	var quit_btn := UiKit.button("종료")
