@@ -127,5 +127,16 @@ func _merc_card(m: Mercenary, show_status: bool) -> Control:
 		info.add_child(UiKit.label("패널티: " + ", ".join(m.penalties), 10, UiKit.RED))
 	h.add_child(info)
 	if show_status:
-		h.add_child(UiKit.chip(m.status_text(), UiKit.TEXT2))
+		var right_box := VBoxContainer.new()
+		right_box.add_theme_constant_override("separation", 2)
+		right_box.alignment = BoxContainer.ALIGNMENT_CENTER
+		right_box.add_child(UiKit.chip(m.status_text(), UiKit.TEXT2))
+		if m.status == Mercenary.Status.READY:
+			var fire_btn := UiKit.button("해고", UiKit.RED)
+			fire_btn.pressed.connect(func():
+				GameState.roster.erase(m)
+				GameState.roster_changed.emit()
+			)
+			right_box.add_child(fire_btn)
+		h.add_child(right_box)
 	return p

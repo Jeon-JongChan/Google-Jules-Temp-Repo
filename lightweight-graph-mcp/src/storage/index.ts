@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-import { GraphData, SymbolInfo, Relation, Language } from '../common/types';
+import { GraphData } from '../common/types';
 import { CodeParser } from '../core/parser';
 import { SymbolExtractor } from '../core/symbols';
 import { RelationExtractor } from '../core/relations';
@@ -27,18 +27,18 @@ export class GraphIndex {
         }
     }
 
-    public async updateFile(filePath: string): Promise<void> {
+    public async updateFile(filePath: string, skipSave: boolean = false): Promise<void> {
         const language = CodeParser.getLanguageFromFile(filePath);
         if (!language) return;
+
+        // Remove old entries before parsing to avoid leaving old data if parsing fails
+        this.removeFileEntries(filePath);
 
         try {
             const content = fs.readFileSync(filePath, 'utf-8');
             const tree = this.parser.parse(content, language);
 
             if (tree) {
-                // Remove old entries for this file
-                this.removeFileEntries(filePath);
-
                 // Extract new entries
                 const symbols = this.symbolExtractor.extractSymbols(tree, filePath, language);
                 const relations = this.relationExtractor.extractRelations(tree, filePath, language);
@@ -51,11 +51,18 @@ export class GraphIndex {
                     this.data.relations[rel.id] = rel;
                 }
 
-                await this.cache.save(this.data);
+                this.resolveRelations();
+                if (!skipSave) {
+                    await this.cache.save(this.data);
+                }
             }
         } catch (error) {
             console.error(`Failed to index file ${filePath}:`, error);
         }
+    }
+
+    public async saveCache(): Promise<void> {
+        await this.cache.save(this.data);
     }
 
     public async removeFile(filePath: string): Promise<void> {
@@ -70,8 +77,42 @@ export class GraphIndex {
             }
         }
         for (const id in this.data.relations) {
-            if (this.data.relations[id].sourceId.startsWith(filePath) || this.data.relations[id].id.startsWith(filePath)) {
+            const rel = this.data.relations[id];
+            if (rel.sourceId.startsWith(filePath) || rel.id.startsWith(filePath) || rel.targetId === filePath || rel.targetId.startsWith(`${filePath}::`)) {
                 delete this.data.relations[id];
+            }
+        }
+    }
+
+    public resolveRelations() {
+        for (const id in this.data.relations) {
+            const rel = this.data.relations[id];
+            if (rel.kind === 'call' && rel.targetId.startsWith('unknown::')) {
+                const funcName = rel.targetId.split('::')[1];
+                let resolvedTargetId = null;
+
+                // Try to find the matching symbol in the same file first
+                const sourceFilePath = rel.sourceId.split('::')[0];
+                let exactMatch = null;
+                for (const symId in this.data.symbols) {
+                    if (this.data.symbols[symId].name === funcName) {
+                        if (this.data.symbols[symId].filePath === sourceFilePath) {
+                            exactMatch = symId;
+                            break;
+                        } else if (!resolvedTargetId) {
+                            resolvedTargetId = symId;
+                        }
+                    }
+                }
+
+                if (exactMatch) {
+                    resolvedTargetId = exactMatch;
+                }
+
+                if (resolvedTargetId) {
+                    rel.targetId = resolvedTargetId;
+                    rel.certainty = 'RESOLVED';
+                }
             }
         }
     }

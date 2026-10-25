@@ -39,7 +39,7 @@ You will need [Node.js](https://nodejs.org/) (v18 or higher) and [npm](https://n
 1. Clone the repository and navigate to the extension directory:
    저장소를 클론하고 확장 프로그램 디렉터리로 이동합니다:
    ```bash
-   git clone <repository_url>
+   git clone https://github.com/Jeon-JongChan/Google-Jules-Temp-Repo
    cd lightweight-graph-mcp
    ```
 

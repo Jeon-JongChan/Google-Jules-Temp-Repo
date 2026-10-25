@@ -14,9 +14,7 @@ func _ready() -> void:
 	_root.set_anchors_preset(PRESET_FULL_RECT)
 	add_child(_root)
 
-	# 원정 시작: 파티 HP 회복, 몬스터 생성
-	for m in GameState.party:
-		m.hp = m.max_hp
+	# 원정 시작: 몬스터 생성
 	_monsters = GameState.generate_monsters()
 	_base_gold = 120 + GameState.dungeon_activity + GameState.rng().randi_range(0, 60)
 	_log.append("어둠의 균열에 들어섰다. 몬스터 %d마리가 모습을 드러낸다." % _monsters.size())

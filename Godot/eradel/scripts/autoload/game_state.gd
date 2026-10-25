@@ -196,13 +196,14 @@ func party_attack_bonus() -> int:
 # ── 치료소 ──
 func heal_success_rate() -> int:
 	var lv: int = buildings.get("치료소", 1)
-	return [50, 50, 62, 74, 82, 90][clampi(lv, 1, 5)]
+	# Lv.1~5 에 따른 치료 성공률: 50%, 62%, 74%, 82%, 90%
+	return [50, 62, 74, 82, 90][clampi(lv, 1, 5) - 1]
 
 
 func injured_mercs() -> Array[Mercenary]:
 	var out: Array[Mercenary] = []
 	for m in roster:
-		if m.penalties.size() > 0 and (m.status == Mercenary.Status.READY or m.status == Mercenary.Status.TREATING):
+		if m.penalties.size() > 0 and m.status == Mercenary.Status.READY:
 			out.append(m)
 	return out
 
@@ -228,6 +229,8 @@ func upgrade_cost(building: String) -> Dictionary:
 
 
 func can_upgrade(building: String) -> bool:
+	if building in ["마탑", "모험가 길드", "영주 저택", "잡화점"]:
+		return false
 	var lv: int = buildings.get(building, 1)
 	if lv >= 5:
 		return false
@@ -293,6 +296,7 @@ func finalize_expedition(outcome: String, base_gold: int) -> void:
 
 	if outcome == "wipe":
 		dead = party.duplicate()
+		survivors.clear()
 
 	# 사망 처리
 	var permanent_gain := 0
@@ -367,7 +371,8 @@ func return_to_estate() -> void:
 	var r := last_result
 	if r.is_empty():
 		return
-	add_gold(r.gold_gain)
+	# 매일 영지 기본 수입 (소프트락 방지)
+	add_gold(r.gold_gain + 50)
 	add_manastone(r.mana_gain)
 	morale = clampi(morale + r.morale_delta, 0, 100)
 	dungeon_activity = clampi(dungeon_activity + r.activity_delta, 0, 100)
@@ -378,6 +383,15 @@ func return_to_estate() -> void:
 	party.clear()
 	party_changed.emit()
 	roster_changed.emit()
+
+	# 대기 인원 휴식 자동 회복 및 실종자 귀환 (5% 확률)
+	for m in roster:
+		if m.status == Mercenary.Status.READY and m.hp > 0:
+			m.hp = mini(m.max_hp, m.hp + int(m.max_hp * 0.3))
+		elif m.status == Mercenary.Status.MISSING:
+			if _rng.randi_range(1, 100) <= 5:
+				m.status = Mercenary.Status.READY
+				m.hp = max(1, int(m.max_hp * 0.1))
 
 	# 다음 날
 	day += 1

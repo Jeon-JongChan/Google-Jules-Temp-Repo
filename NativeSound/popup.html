@@ -9,6 +9,63 @@
             --text-color: #333;
             --bg-color: #f9f9f9;
         }
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 24px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: var(--primary-color);
+        }
+        input:checked + .slider:before {
+            transform: translateX(20px);
+        }
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        h3 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            border-bottom: none;
+            padding-bottom: 0;
+            margin-bottom: 0;
+        }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             width: 300px;
@@ -115,7 +172,13 @@
     </style>
 </head>
 <body>
-    <h3><span>🎙️</span> NativeSound 설정</h3>
+    <div class="header-container">
+        <h3><span>🎙️</span> NativeSound 설정</h3>
+        <label class="toggle-switch">
+            <input type="checkbox" id="is_enabled">
+            <span class="slider"></span>
+        </label>
+    </div>
 
     <div class="form-group">
         <div class="section-title">자막 언어 설정</div>
@@ -125,20 +188,20 @@
                 <select id="source_lang">
                     <option value="auto">자동 감지</option>
                     <option value="en">영어 (English)</option>
-                    <option value="ja">일본어 (Japanese)</option>
-                    <option value="zh">중국어 (Chinese)</option>
-                    <option value="es">스페인어 (Spanish)</option>
-                    <option value="fr">프랑스어 (French)</option>
-                    <option value="de">독일어 (German)</option>
+                    <option value="ja" disabled>일본어 (현재는 영어 자막만 지원)</option>
+                    <option value="zh" disabled>중국어 (현재는 영어 자막만 지원)</option>
+                    <option value="es" disabled>스페인어 (현재는 영어 자막만 지원)</option>
+                    <option value="fr" disabled>프랑스어 (현재는 영어 자막만 지원)</option>
+                    <option value="de" disabled>독일어 (현재는 영어 자막만 지원)</option>
                 </select>
             </div>
             <div style="flex: 1;">
                 <label style="font-size: 12px; color: #777;">발음 표시 언어</label>
                 <select id="target_lang">
                     <option value="ko">한국어 (Korean)</option>
-                    <option value="en">영어 (English)</option>
-                    <option value="ja">일본어 (Japanese)</option>
-                    <option value="es">스페인어 (Spanish)</option>
+                    <option value="en" disabled>영어 (준비 중)</option>
+                    <option value="ja" disabled>일본어 (준비 중)</option>
+                    <option value="es" disabled>스페인어 (준비 중)</option>
                 </select>
             </div>
         </div>
