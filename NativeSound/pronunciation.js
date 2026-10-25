@@ -181,10 +181,10 @@ function getPronunciationForWord(word, mode, targetLang = 'ko') {
 
     if (mode === 'word') {
         if (targetLang === 'ko') {
-            if (koreanApproximations[cleanWord]) {
-                return koreanApproximations[cleanWord];
-            } else if (typeof CMUDict !== 'undefined' && CMUDict[cleanWord]) {
+            if (typeof CMUDict !== 'undefined' && CMUDict[cleanWord]) {
                 return phonemesToKorean(CMUDict[cleanWord]);
+            } else if (koreanApproximations[cleanWord]) {
+                return koreanApproximations[cleanWord];
             } else {
                 return fallbackPronunciation(cleanWord);
             }
@@ -205,7 +205,13 @@ function getPronunciationForSentence(sentence, mode, targetLang = 'ko') {
 
     if (mode === 'conversation') {
         if (targetLang === 'ko') {
-            for (const [phrase, pronunciation] of Object.entries(conversationalMapping)) {
+            // 구문의 길이가 긴 것부터 치환하도록 정렬 (캐싱을 통한 성능 개선)
+            if (!this.cachedSortedMappings) {
+                this.cachedSortedMappings = Object.entries(conversationalMapping)
+                    .sort((a, b) => b[0].length - a[0].length);
+            }
+
+            for (const [phrase, pronunciation] of this.cachedSortedMappings) {
                 const regex = new RegExp(`\\b${phrase}\\b`, 'gi');
                 processedSentence = processedSentence.replace(regex, pronunciation);
             }
