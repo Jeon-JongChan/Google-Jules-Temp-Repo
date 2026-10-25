@@ -16,6 +16,4 @@
 }
 
 /* 추가 스타일: 유튜브 환경에서는 z-index 등 조정이 필요할 수 있음 */
-.ytp-caption-segment {
-    position: relative; /* 자막 세그먼트 안에 발음이 올바르게 위치하도록 함 */
-}
+/* .ytp-caption-segment 에 대한 전역 position: relative 오버라이드는 유튜브 기본 레이아웃 충돌 우려로 제거함 */
