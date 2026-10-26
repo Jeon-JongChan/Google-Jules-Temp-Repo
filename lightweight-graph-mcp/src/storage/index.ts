@@ -51,6 +51,7 @@ export class GraphIndex {
                     this.data.relations[rel.id] = rel;
                 }
 
+                this.resolveImports();
                 this.resolveRelations();
                 if (!skipSave) {
                     await this.cache.save(this.data);
@@ -84,34 +85,79 @@ export class GraphIndex {
         }
     }
 
-    public resolveRelations() {
+    public resolveImports() {
+        // Collect known file paths from symbols
+        const knownFiles = new Set<string>();
+        for (const symId in this.data.symbols) {
+            knownFiles.add(this.data.symbols[symId].filePath);
+        }
+
+        const exts = ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.mts', '.cts', '.py'];
+
         for (const id in this.data.relations) {
             const rel = this.data.relations[id];
-            if (rel.kind === 'call' && rel.targetId.startsWith('unknown::')) {
-                const funcName = rel.targetId.split('::')[1];
-                let resolvedTargetId = null;
+            if (rel.kind === 'import' && !knownFiles.has(rel.targetId)) {
+                // targetId doesn't exactly match a known file path. Try appending extensions or index
+                let resolvedTargetId: string | null = null;
 
-                // Try to find the matching symbol in the same file first
-                const sourceFilePath = rel.sourceId.split('::')[0];
-                let exactMatch = null;
-                for (const symId in this.data.symbols) {
-                    if (this.data.symbols[symId].name === funcName) {
-                        if (this.data.symbols[symId].filePath === sourceFilePath) {
-                            exactMatch = symId;
-                            break;
-                        } else if (!resolvedTargetId) {
-                            resolvedTargetId = symId;
-                        }
+                for (const ext of exts) {
+                    if (knownFiles.has(rel.targetId + ext)) {
+                        resolvedTargetId = rel.targetId + ext;
+                        break;
                     }
-                }
-
-                if (exactMatch) {
-                    resolvedTargetId = exactMatch;
+                    if (knownFiles.has(rel.targetId + '/index' + ext)) {
+                        resolvedTargetId = rel.targetId + '/index' + ext;
+                        break;
+                    }
                 }
 
                 if (resolvedTargetId) {
                     rel.targetId = resolvedTargetId;
                     rel.certainty = 'RESOLVED';
+
+                    // Update ID to match the resolved targetId (assuming format: source::import::target)
+                    const oldId = rel.id;
+                    const newId = `${rel.sourceId}::import::${resolvedTargetId}`;
+                    if (oldId !== newId) {
+                        rel.id = newId;
+                        this.data.relations[newId] = rel;
+                        delete this.data.relations[oldId];
+                    }
+                }
+            }
+        }
+    }
+
+    public resolveRelations() {
+        for (const id in this.data.relations) {
+            const rel = this.data.relations[id];
+            if (rel.kind === 'call' && rel.targetId.startsWith('unknown::')) {
+                const funcName = rel.targetId.split('::')[1];
+
+                const sourceFilePath = rel.sourceId.split('::')[0];
+                let exactMatch = null;
+                let fallbackMatch = null;
+
+                for (const symId in this.data.symbols) {
+                    const sym = this.data.symbols[symId];
+                    if (sym.name === funcName) {
+                        if (sym.filePath === sourceFilePath) {
+                            // Exact match in the same file
+                            exactMatch = symId;
+                            break; // Highly confident it's this one
+                        } else if (!fallbackMatch) {
+                            // Keep the first external match as a fallback
+                            fallbackMatch = symId;
+                        }
+                    }
+                }
+
+                if (exactMatch) {
+                    rel.targetId = exactMatch;
+                    rel.certainty = 'RESOLVED';
+                } else if (fallbackMatch) {
+                    rel.targetId = fallbackMatch;
+                    rel.certainty = 'INFERRED';
                 }
             }
         }

@@ -132,18 +132,33 @@ export class RelationExtractor {
 
     private findEnclosingSymbol(node: any, language: Language): string {
         let current: any | null = node.parent;
+        const scopeParts: string[] = [];
+
         while (current) {
+            let name = '';
             if (language === 'javascript' || language === 'typescript') {
-                if (current.type === 'function_declaration' || current.type === 'method_definition') {
-                    return current.childForFieldName('name')?.text || 'anonymous';
+                if (current.type === 'class_declaration' || current.type === 'interface_declaration') {
+                    name = current.childForFieldName('name')?.text || '';
+                } else if (current.type === 'function_declaration' || current.type === 'method_definition') {
+                    name = current.childForFieldName('name')?.text || '';
+                } else if (current.type === 'variable_declarator') {
+                    const valueNode = current.childForFieldName('value');
+                    if (valueNode && valueNode.type === 'arrow_function') {
+                        name = current.childForFieldName('name')?.text || '';
+                    }
                 }
             } else if (language === 'python') {
-                if (current.type === 'function_definition') {
-                    return current.childForFieldName('name')?.text || 'anonymous';
+                if (current.type === 'class_definition' || current.type === 'function_definition') {
+                    name = current.childForFieldName('name')?.text || '';
                 }
+            }
+
+            if (name) {
+                scopeParts.unshift(name);
             }
             current = current.parent;
         }
-        return 'global';
+
+        return scopeParts.length > 0 ? scopeParts.join('::') : 'global';
     }
 }

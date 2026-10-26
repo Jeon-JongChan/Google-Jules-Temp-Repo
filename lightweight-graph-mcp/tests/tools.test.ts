@@ -1,5 +1,6 @@
 import { GraphTools } from '../src/mcp/tools';
 import { GraphData } from '../src/common/types';
+import { GraphIndex } from '../src/storage/index';
 
 describe('Graph Tools Tests', () => {
     test('getProjectOverview returns correct stats', () => {
@@ -57,5 +58,30 @@ describe('Graph Tools Tests', () => {
         const impact = tools.getImpact('f1');
         expect(impact.length).toBe(1);
         expect(impact[0].name).toBe('func2');
+    });
+
+    test('resolveRelations assigns INFERRED or RESOLVED correctly', () => {
+        const index = new GraphIndex('/fake');
+        const data = index.getGraphData();
+
+        // Exact match scenario in file1
+        data.symbols['file1.ts::helper'] = { id: 'file1.ts::helper', name: 'helper', kind: 'function', filePath: 'file1.ts', language: 'typescript', range: { start: {line:0, character:0}, end: {line:0, character:0}} };
+        data.symbols['file2.ts::helper'] = { id: 'file2.ts::helper', name: 'helper', kind: 'function', filePath: 'file2.ts', language: 'typescript', range: { start: {line:0, character:0}, end: {line:0, character:0}} };
+
+        data.relations['rel1'] = { id: 'rel1', sourceId: 'file1.ts::caller', targetId: 'unknown::helper', kind: 'call', certainty: 'EXTRACTED' };
+
+        // No exact match scenario in file3
+        data.symbols['file3.ts::caller3'] = { id: 'file3.ts::caller3', name: 'caller3', kind: 'function', filePath: 'file3.ts', language: 'typescript', range: { start: {line:0, character:0}, end: {line:0, character:0}} };
+        data.relations['rel2'] = { id: 'rel2', sourceId: 'file3.ts::caller3', targetId: 'unknown::helper', kind: 'call', certainty: 'EXTRACTED' };
+
+        (index as any).resolveRelations();
+
+        // Exact match -> RESOLVED
+        expect(data.relations['rel1'].targetId).toBe('file1.ts::helper');
+        expect(data.relations['rel1'].certainty).toBe('RESOLVED');
+
+        // External fallback -> INFERRED
+        expect(data.relations['rel2'].targetId).toMatch(/file[12]\.ts::helper/);
+        expect(data.relations['rel2'].certainty).toBe('INFERRED');
     });
 });
