@@ -168,7 +168,8 @@ const koreanApproximations = {
     "YOU": "유",
     "DOING": "두잉",
     "GOOD": "굿",
-    "MORNING": "모닝"
+    "MORNING": "모닝",
+    "THE": "더"
 };
 
 const conversationalMapping = {

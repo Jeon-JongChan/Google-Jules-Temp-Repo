@@ -27,6 +27,7 @@ function evaluate(expr) {
 // HELLO와 ANGER는 koreanApproximations에 존재하므로 curated 발음이 나와야 함
 assertEqual(evaluate("getPronunciationForWord('HELLO', 'word', 'ko')"), '헬로우', 'Word Mode - Curated Priority (HELLO)');
 assertEqual(evaluate("getPronunciationForWord('ANGER', 'word', 'ko')"), '엔절', 'Word Mode - Curated Priority (ANGER)');
+assertEqual(evaluate("getPronunciationForWord('THE', 'word', 'ko')"), '더', 'Word Mode - Curated Priority (THE)');
 
 // Test 2-1: CMU Dictionary Expansion Check
 // "TEST" is added to CMUDict but not in Curated, should map to 'T EH1 S T' -> ㅌ에ㅅㅌ

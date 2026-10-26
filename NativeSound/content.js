@@ -156,6 +156,10 @@ const startCaptionObserver = (container) => {
 };
 
 const startBodyObserver = () => {
+    // [미구현/한계 명시]: 다음 자막을 미리 화면에 나오도록 띄우는 기능은 현재 구현이 불가능합니다.
+    // 유튜브 자막은 플레이어 서버에서 실시간으로 로드되어 DOM(.ytp-caption-segment)에 삽입되므로,
+    // 클라이언트의 MutationObserver 방식으로는 화면에 그려지기 전의 '미래의 자막 데이터'에 접근할 수 없습니다.
+
     // 1. 자막 컨테이너가 이미 있는지 확인
     let container = document.querySelector('.ytp-caption-window-container');
     if (container) {
