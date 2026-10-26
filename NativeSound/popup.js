@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const radioButtons = document.querySelectorAll('input[name="pronunciation_mode"]');
     const sourceLangSelect = document.getElementById('source_lang');
     const targetLangSelect = document.getElementById('target_lang');
+    const isEnabledToggle = document.getElementById('is_enabled');
 
     const cards = {
         'word': document.getElementById('card-word'),
@@ -16,10 +17,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Load saved settings
-    chrome.storage.local.get(['pronunciation_mode', 'source_lang', 'target_lang'], (result) => {
+    chrome.storage.local.get(['pronunciation_mode', 'source_lang', 'target_lang', 'is_enabled'], (result) => {
+        if (chrome.runtime.lastError) {
+            console.error("Storage error:", chrome.runtime.lastError);
+            return;
+        }
         const mode = result.pronunciation_mode || 'word';
         const sourceLang = result.source_lang || 'auto';
         const targetLang = result.target_lang || 'ko';
+        const isEnabled = result.is_enabled !== undefined ? result.is_enabled : true;
 
         const targetRadio = document.querySelector(`input[value="${mode}"]`);
         if(targetRadio) {
@@ -27,35 +33,58 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         updateCards(mode);
 
-        sourceLangSelect.value = sourceLang;
-        targetLangSelect.value = targetLang;
+        if (sourceLangSelect) sourceLangSelect.value = sourceLang;
+        if (targetLangSelect) targetLangSelect.value = targetLang;
+        if (isEnabledToggle) isEnabledToggle.checked = isEnabled;
     });
 
     // Save settings on change
     radioButtons.forEach(radio => {
         radio.addEventListener('change', (e) => {
             const newMode = e.target.value;
-            chrome.storage.local.set({ pronunciation_mode: newMode });
+            chrome.storage.local.set({ pronunciation_mode: newMode }, () => {
+                if (chrome.runtime.lastError) console.error("Storage error:", chrome.runtime.lastError);
+            });
             updateCards(newMode);
         });
     });
 
-    sourceLangSelect.addEventListener('change', (e) => {
-        chrome.storage.local.set({ source_lang: e.target.value });
-    });
+    if (sourceLangSelect) {
+        sourceLangSelect.addEventListener('change', (e) => {
+            chrome.storage.local.set({ source_lang: e.target.value }, () => {
+                if (chrome.runtime.lastError) console.error("Storage error:", chrome.runtime.lastError);
+            });
+        });
+    }
 
-    targetLangSelect.addEventListener('change', (e) => {
-        chrome.storage.local.set({ target_lang: e.target.value });
-    });
+    if (targetLangSelect) {
+        targetLangSelect.addEventListener('change', (e) => {
+            chrome.storage.local.set({ target_lang: e.target.value }, () => {
+                if (chrome.runtime.lastError) console.error("Storage error:", chrome.runtime.lastError);
+            });
+        });
+    }
+
+    if (isEnabledToggle) {
+        isEnabledToggle.addEventListener('change', (e) => {
+            chrome.storage.local.set({ is_enabled: e.target.checked }, () => {
+                if (chrome.runtime.lastError) console.error("Storage error:", chrome.runtime.lastError);
+            });
+        });
+    }
 
     // Make entire card clickable
     Object.keys(cards).forEach(key => {
-         cards[key].addEventListener('click', (e) => {
-              if(e.target.tagName !== 'INPUT') {
-                   const radio = cards[key].querySelector('input[type="radio"]');
-                   radio.checked = true;
-                   radio.dispatchEvent(new Event('change'));
-              }
-         });
+         if (cards[key]) {
+             cards[key].addEventListener('click', (e) => {
+                  if(e.target.tagName !== 'INPUT') {
+                       const radio = cards[key].querySelector('input[type="radio"]');
+                       if (radio) {
+                           radio.checked = true;
+                           radio.dispatchEvent(new Event('change'));
+                       }
+                  }
+             });
+         }
     });
 });

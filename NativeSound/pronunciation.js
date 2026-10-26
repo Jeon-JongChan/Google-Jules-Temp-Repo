@@ -41,7 +41,12 @@ function composeHangul(cho, jung, jong) {
 
 function fallbackPronunciation(word) {
     let result = '';
-    const lowerWord = word.toLowerCase();
+    // [한계 명시]: 완벽한 음운 엔진은 불가능하며, 사전 확장이 주된 해결책입니다.
+    // 여기서는 흔한 영어 패턴에 대한 매우 제한적인(bounded) 폴백 보정을 수행합니다.
+    let lowerWord = word.toLowerCase();
+    lowerWord = lowerWord.replace(/tion/g, 'shun')
+                         .replace(/ght/g, 't')
+                         .replace(/through/g, 'thru');
 
     // Very simplified regex for CVC (Consonant-Vowel-Consonant) pattern approximation
     const pattern = /([bcdfghjklmnpqrstvwxyz]*)([aeiouy]+)([bcdfghjklmnpqrstvwxyz]*(?![aeiouy]))?/g;
@@ -175,18 +180,63 @@ const conversationalMapping = {
     "NATIVE": "네이리브"
 };
 
+const contractionMapping = {
+    "DON'T": "돈트",
+    "IT'S": "잇츠",
+    "CAN'T": "캔트",
+    "WON'T": "원트",
+    "I'M": "아임",
+    "YOU'RE": "유얼",
+    "THAT'S": "대츠"
+};
+
+let cachedSortedMappings = null;
+
+// Strategy Pattern for Word Pronunciation
+class CuratedStrategy {
+    execute(cleanWord) {
+        if (koreanApproximations[cleanWord]) {
+            return koreanApproximations[cleanWord];
+        }
+        return null;
+    }
+}
+
+class CmuDictStrategy {
+    execute(cleanWord) {
+        if (typeof CMUDict !== 'undefined' && CMUDict[cleanWord]) {
+            return phonemesToKorean(CMUDict[cleanWord]);
+        }
+        return null;
+    }
+}
+
+class FallbackStrategy {
+    execute(cleanWord) {
+        return fallbackPronunciation(cleanWord);
+    }
+}
+
+const pronunciationStrategies = [
+    new CuratedStrategy(),
+    new CmuDictStrategy(),
+    new FallbackStrategy()
+];
+
 function getPronunciationForWord(word, mode, targetLang = 'ko') {
-    const cleanWord = word.toUpperCase().replace(/[^A-Z']/g, '');
+    let cleanWord = word.toUpperCase().replace(/[^A-Z']/g, '');
     if (!cleanWord) return "";
 
     if (mode === 'word') {
         if (targetLang === 'ko') {
-            if (koreanApproximations[cleanWord]) {
-                return koreanApproximations[cleanWord];
-            } else if (typeof CMUDict !== 'undefined' && CMUDict[cleanWord]) {
-                return phonemesToKorean(CMUDict[cleanWord]);
-            } else {
-                return fallbackPronunciation(cleanWord);
+            if (contractionMapping[cleanWord]) {
+                return contractionMapping[cleanWord];
+            }
+            cleanWord = cleanWord.replace(/'/g, ''); // Remove remaining apostrophes before matching
+
+            for (const strategy of pronunciationStrategies) {
+                const result = strategy.execute(cleanWord);
+                if (result) return result;
             }
         } else {
              // For non-Korean languages, just return the uppercase clean word
@@ -200,12 +250,26 @@ function getPronunciationForWord(word, mode, targetLang = 'ko') {
 function getPronunciationForSentence(sentence, mode, targetLang = 'ko') {
     if (!sentence) return "";
 
+    const trimmed = sentence.trim();
+    // 비발화 자막 필터 (괄호 포함 추가)
+    if (trimmed.includes('♪') || trimmed.includes('♫') ||
+        (trimmed.startsWith('[') && trimmed.endsWith(']')) ||
+        (trimmed.startsWith('(') && trimmed.endsWith(')'))) {
+        return trimmed;
+    }
+
     let processedSentence = sentence;
     let pronunciationResult = [];
 
     if (mode === 'conversation') {
         if (targetLang === 'ko') {
-            for (const [phrase, pronunciation] of Object.entries(conversationalMapping)) {
+            // 구문의 길이가 긴 것부터 치환하도록 정렬 (캐싱을 통한 성능 개선)
+            if (!cachedSortedMappings) {
+                cachedSortedMappings = Object.entries(conversationalMapping)
+                    .sort((a, b) => b[0].length - a[0].length);
+            }
+
+            for (const [phrase, pronunciation] of cachedSortedMappings) {
                 const regex = new RegExp(`\\b${phrase}\\b`, 'gi');
                 processedSentence = processedSentence.replace(regex, pronunciation);
             }

@@ -1,0 +1,8 @@
+{
+  "name": "native-sound",
+  "version": "1.0.0",
+  "description": "Tests for NativeSound",
+  "scripts": {
+    "test": "node test_pronunciation.js"
+  }
+}
