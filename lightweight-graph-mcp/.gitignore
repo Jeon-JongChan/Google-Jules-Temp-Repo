@@ -4,3 +4,9 @@ out/
 .vscode-test/
 *.vsix
 .DS_Store
+.build/*
+!.build/*.ps1
+!.build/*.sh
+!.build/*.md
+!.build/*.cmd
+.build/activate.ps1
