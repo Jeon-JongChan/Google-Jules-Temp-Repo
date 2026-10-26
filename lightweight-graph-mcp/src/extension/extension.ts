@@ -14,8 +14,12 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Register MCP Server Provider
     const mcpProvider = new GraphMcpServerProvider(context);
-    const providerRegistration = vscode.lm.registerMcpServerDefinitionProvider('lightweight-graph-mcp', mcpProvider);
-    context.subscriptions.push(providerRegistration);
+    if (vscode.lm && vscode.lm.registerMcpServerDefinitionProvider) {
+        const providerRegistration = vscode.lm.registerMcpServerDefinitionProvider('lightweight-graph-mcp', mcpProvider);
+        context.subscriptions.push(providerRegistration);
+    } else {
+        vscode.window.showWarningMessage('Graph MCP: Your VS Code version does not support MCP Server Definition Provider API. Please update VS Code.');
+    }
 
     // Register Commands
     context.subscriptions.push(

@@ -50,6 +50,7 @@ export class CodeParser {
             this.langCache.set('python', pyLang);
         } catch (e) {
             console.error('Failed to load WASM languages', e);
+            throw new Error(`Failed to load WASM languages: ${e}`);
         }
     }
 
@@ -67,8 +68,8 @@ export class CodeParser {
     }
 
     public static getLanguageFromFile(filePath: string): Language | null {
-        if (filePath.endsWith('.js') || filePath.endsWith('.jsx')) return 'javascript';
-        if (filePath.endsWith('.ts') || filePath.endsWith('.tsx')) return 'typescript';
+        if (filePath.endsWith('.js') || filePath.endsWith('.jsx') || filePath.endsWith('.mjs') || filePath.endsWith('.cjs')) return 'javascript';
+        if (filePath.endsWith('.ts') || filePath.endsWith('.tsx') || filePath.endsWith('.mts') || filePath.endsWith('.cts')) return 'typescript';
         if (filePath.endsWith('.py')) return 'python';
         return null;
     }

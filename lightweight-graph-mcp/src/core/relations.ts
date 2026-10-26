@@ -1,4 +1,4 @@
-import { Language, Relation, RelationCertainty, RelationKind } from '../common/types';
+import { Language, Relation } from '../common/types';
 import * as path from 'path';
 
 export class RelationExtractor {
@@ -27,7 +27,30 @@ export class RelationExtractor {
             if (node.type === 'call_expression') {
                 const funcNode = node.childForFieldName('function');
                 if (funcNode) {
-                    const funcName = funcNode.text;
+                    let funcName = funcNode.text;
+
+                    if (funcName === 'require') {
+                        const argsNode = node.childForFieldName('arguments');
+                        if (argsNode && argsNode.namedChildCount > 0) {
+                            const argText = argsNode.namedChild(0).text.replace(/['"]/g, '');
+                            const resolvedPath = this.resolveImportPath(filePath, argText, language);
+                            return {
+                                id: `${filePath}::import::${resolvedPath}`,
+                                sourceId: filePath,
+                                targetId: resolvedPath,
+                                kind: 'import',
+                                certainty: 'EXTRACTED'
+                            };
+                        }
+                    }
+
+                    // For member calls like obj.method(), let's capture the method name to help resolution later
+                    if (funcNode.type === 'member_expression') {
+                        const propNode = funcNode.childForFieldName('property');
+                        if (propNode) {
+                            funcName = propNode.text;
+                        }
+                    }
                     const callerName = this.findEnclosingSymbol(node, language);
 
                     return {
@@ -42,14 +65,15 @@ export class RelationExtractor {
                         }
                     };
                 }
-            } else if (node.type === 'import_statement') {
+            } else if (node.type === 'import_statement' || node.type === 'export_statement') {
                 const sourceNode = node.childForFieldName('source');
                 if (sourceNode) {
                     const importPath = sourceNode.text.replace(/['"]/g, '');
+                    const resolvedPath = this.resolveImportPath(filePath, importPath, language);
                     return {
-                        id: `${filePath}::import::${importPath}`,
+                        id: `${filePath}::import::${resolvedPath}`,
                         sourceId: filePath,
-                        targetId: importPath,
+                        targetId: resolvedPath,
                         kind: 'import',
                         certainty: 'EXTRACTED'
                     };
@@ -59,7 +83,13 @@ export class RelationExtractor {
             if (node.type === 'call') {
                 const funcNode = node.childForFieldName('function');
                 if (funcNode) {
-                    const funcName = funcNode.text;
+                    let funcName = funcNode.text;
+                    if (funcNode.type === 'attribute') {
+                        const attrNode = funcNode.childForFieldName('attribute');
+                        if (attrNode) {
+                            funcName = attrNode.text;
+                        }
+                    }
                     const callerName = this.findEnclosingSymbol(node, language);
 
                     return {
@@ -88,20 +118,47 @@ export class RelationExtractor {
         return null;
     }
 
+    private resolveImportPath(currentFilePath: string, importPath: string, language: Language): string {
+        if (importPath.startsWith('.')) {
+            const dir = path.dirname(currentFilePath);
+            let resolved = path.join(dir, importPath);
+            // Optional: could append .ts, .js but usually tracking just the resolved base name is enough
+            // for simple comparison if we strip extensions everywhere, but let's keep it exact if we can, or just relative
+            // The issue mentions normalizing relative paths to actual paths.
+            return resolved;
+        }
+        return importPath;
+    }
+
     private findEnclosingSymbol(node: any, language: Language): string {
         let current: any | null = node.parent;
+        const scopeParts: string[] = [];
+
         while (current) {
+            let name = '';
             if (language === 'javascript' || language === 'typescript') {
-                if (current.type === 'function_declaration' || current.type === 'method_definition') {
-                    return current.childForFieldName('name')?.text || 'anonymous';
+                if (current.type === 'class_declaration' || current.type === 'interface_declaration') {
+                    name = current.childForFieldName('name')?.text || '';
+                } else if (current.type === 'function_declaration' || current.type === 'method_definition') {
+                    name = current.childForFieldName('name')?.text || '';
+                } else if (current.type === 'variable_declarator') {
+                    const valueNode = current.childForFieldName('value');
+                    if (valueNode && valueNode.type === 'arrow_function') {
+                        name = current.childForFieldName('name')?.text || '';
+                    }
                 }
             } else if (language === 'python') {
-                if (current.type === 'function_definition') {
-                    return current.childForFieldName('name')?.text || 'anonymous';
+                if (current.type === 'class_definition' || current.type === 'function_definition') {
+                    name = current.childForFieldName('name')?.text || '';
                 }
+            }
+
+            if (name) {
+                scopeParts.unshift(name);
             }
             current = current.parent;
         }
-        return 'global';
+
+        return scopeParts.length > 0 ? scopeParts.join('::') : 'global';
     }
 }

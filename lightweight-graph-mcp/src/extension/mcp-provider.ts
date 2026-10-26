@@ -12,11 +12,21 @@ export class GraphMcpServerProvider implements vscode.McpServerDefinitionProvide
         const workspaceFolders = vscode.workspace.workspaceFolders;
         const workspaceRoot = workspaceFolders && workspaceFolders.length > 0 ? workspaceFolders[0].uri.fsPath : '';
 
-        return [{
-            label: "Lightweight Graph MCP",
-            command: process.execPath, // Use VS Code's Node.js
-            args: [serverScriptPath, workspaceRoot],
-            env: { ELECTRON_RUN_AS_NODE: '1' }
-        } as unknown as vscode.McpServerDefinition];
+        if (vscode.McpStdioServerDefinition) {
+            return [new vscode.McpStdioServerDefinition(
+                "Lightweight Graph MCP",
+                process.execPath,
+                [serverScriptPath, workspaceRoot],
+                { ELECTRON_RUN_AS_NODE: '1' }
+            )];
+        } else {
+            // Fallback for types if somehow running in environment where it doesn't strictly match but exists
+            return [{
+                label: "Lightweight Graph MCP",
+                command: process.execPath, // Use VS Code's Node.js
+                args: [serverScriptPath, workspaceRoot],
+                env: { ELECTRON_RUN_AS_NODE: '1' }
+            } as unknown as vscode.McpServerDefinition];
+        }
     }
 }

@@ -1,9 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { GraphIndex } from "../storage/index";
 import { GraphTools } from "./tools";
-import * as path from 'path';
 import * as fs from 'fs';
 import { GraphCache } from '../storage/cache';
 
@@ -160,11 +158,13 @@ export class GraphMcpServer {
             {},
             async () => {
                 await this.reloadIndexIfNeeded();
+                const symbolsCount = Object.keys(this.graphData.symbols).length;
+                const status = symbolsCount === 0 ? "NotBuilt" : "Ready";
                 return {
                     content: [
                         { type: "text", text: JSON.stringify({
-                            status: "Ready",
-                            symbolsCount: Object.keys(this.graphData.symbols).length,
+                            status,
+                            symbolsCount,
                             relationsCount: Object.keys(this.graphData.relations).length,
                             supportedLanguages: ["javascript", "typescript", "python"]
                         }, null, 2) }
