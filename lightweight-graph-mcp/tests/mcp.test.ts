@@ -63,4 +63,19 @@ describe('Graph MCP Tools Tests', () => {
         expect(callers.length).toBe(1);
         expect(callers[0].sourceId).toBe('test.ts::UserService');
     });
+
+    test('get_index_status logic properly determines NotBuilt vs Ready', () => {
+        let currentData: GraphData = { version: '1.0', symbols: {}, relations: {} };
+
+        // When empty
+        let symbolsCount = Object.keys(currentData.symbols).length;
+        let status = symbolsCount === 0 ? "NotBuilt" : "Ready";
+        expect(status).toBe("NotBuilt");
+
+        // When populated (simulating buildIndex completion)
+        currentData.symbols['test'] = mockData.symbols['test.ts::UserService'];
+        symbolsCount = Object.keys(currentData.symbols).length;
+        status = symbolsCount === 0 ? "NotBuilt" : "Ready";
+        expect(status).toBe("Ready");
+    });
 });

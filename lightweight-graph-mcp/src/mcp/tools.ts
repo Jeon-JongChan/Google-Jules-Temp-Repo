@@ -77,7 +77,7 @@ export class GraphTools {
     }
 
     public getImpact(target: string): SymbolInfo[] {
-        // Find callers, and classes that inherit from it
+        // Find callers that depend on this target
         const callers = this.getCallers(target);
         const data = this.getGraphData();
         const impact: SymbolInfo[] = [];
