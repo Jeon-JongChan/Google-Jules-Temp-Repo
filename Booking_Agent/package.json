@@ -4,6 +4,7 @@
   "description": "A semi-automated booking agent for various ticket sites.",
   "main": "src/main/index.js",
   "scripts": {
+    "postinstall": "npx playwright install chromium",
     "start": "electron .",
     "pack": "electron-builder --dir",
     "dist": "electron-builder",
@@ -12,7 +13,7 @@
   "author": "Jules",
   "license": "ISC",
   "dependencies": {
-    "playwright": "^1.50.1"
+    "playwright": "^1.64.1"
   },
   "devDependencies": {
     "electron": "^34.5.8",
