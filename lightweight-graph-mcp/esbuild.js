@@ -80,13 +80,14 @@ async function main() {
         ],
     });
 
+    copyWasmAssets();
+
     if (watch) {
         await extensionCtx.watch();
         await mcpCtx.watch();
     } else {
         await extensionCtx.rebuild();
         await mcpCtx.rebuild();
-        copyWasmAssets();
         await extensionCtx.dispose();
         await mcpCtx.dispose();
     }
