@@ -1,10 +1,16 @@
 package main
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"regexp"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/twmb/franz-go/pkg/kadm"
+	"github.com/twmb/franz-go/pkg/kgo"
 )
 
 // TestRenderStatus 는 텍스트 상태 출력의 경고 판정(오프라인 브로커, URP, lag)과 토폴로지 트리를 검증한다.
@@ -104,5 +110,28 @@ func TestLocaleKeys(t *testing.T) {
 	}
 	if len(missing) > 0 {
 		t.Fatalf("ko.js 에 없는 키: %s", strings.Join(missing, ", "))
+	}
+}
+
+// TestHandleTopicConfigError 는 Kafka admin client 에서 에러가 났을 때
+// http.StatusBadGateway 응답이 오는지 검증한다.
+func TestHandleTopicConfigError(t *testing.T) {
+	cl, err := kgo.NewClient(kgo.SeedBrokers("127.0.0.1:1"), kgo.DialTimeout(10*time.Millisecond))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cl.Close()
+
+	s := &server{adm: kadm.NewClient(cl)}
+
+	req := httptest.NewRequest("GET", "/api/topics/foo/config", nil)
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/topics/{name}/config", s.handleTopicConfig)
+
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadGateway {
+		t.Fatalf("expected StatusBadGateway, got %d. body: %s", w.Code, w.Body.String())
 	}
 }
