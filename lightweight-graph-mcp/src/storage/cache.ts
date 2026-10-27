@@ -31,14 +31,17 @@ export class GraphCache {
 
     public async load(): Promise<GraphData | null> {
         try {
-            if (fs.existsSync(this.cachePath)) {
-                const content = fs.readFileSync(this.cachePath, 'utf-8');
-                const data = JSON.parse(content) as GraphData;
-                if (data && data.version === '1.0') {
-                    return data;
-                } else {
-                    console.warn('Graph cache version mismatch or invalid format. Discarding cache.');
-                }
+            try {
+                await fs.promises.access(this.cachePath);
+            } catch {
+                return null;
+            }
+            const content = await fs.promises.readFile(this.cachePath, 'utf-8');
+            const data = JSON.parse(content) as GraphData;
+            if (data && data.version === '1.0') {
+                return data;
+            } else {
+                console.warn('Graph cache version mismatch or invalid format. Discarding cache.');
             }
         } catch (error) {
             console.error('Failed to load graph cache:', error);
