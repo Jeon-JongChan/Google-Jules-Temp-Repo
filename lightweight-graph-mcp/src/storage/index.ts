@@ -35,7 +35,7 @@ export class GraphIndex {
         this.removeFileEntries(filePath);
 
         try {
-            const content = fs.readFileSync(filePath, 'utf-8');
+            const content = await fs.promises.readFile(filePath, 'utf-8');
             const tree = this.parser.parse(content, language);
 
             if (tree) {
