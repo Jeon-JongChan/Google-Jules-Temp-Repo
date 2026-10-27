@@ -40,7 +40,7 @@ describe('Graph Core Tests', () => {
         const methodSym = symbols.find(s => s.name === 'myMethod' && s.kind === 'method');
         expect(methodSym).toBeDefined();
         // check ID collision fix (should have scope)
-        expect(methodSym?.id).toContain('MyClass');
+        expect(methodSym?.id).toBe('test.ts::MyClass::myMethod');
 
         const arrowSym = symbols.find(s => s.name === 'myVar' && s.kind === 'function');
         expect(arrowSym).toBeDefined();
@@ -148,7 +148,7 @@ def py_func():
         const pyMethod = symbols.find(s => s.name === 'py_method' && s.kind === 'function');
         expect(pyMethod).toBeDefined();
         // check python scope
-        expect(pyMethod?.id).toContain('PythonClass');
+        expect(pyMethod?.id).toBe('test.py::PythonClass::py_method');
 
         const pyFunc = symbols.find(s => s.name === 'py_func' && s.kind === 'function');
         expect(pyFunc).toBeDefined();
