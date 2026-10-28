@@ -60,6 +60,12 @@ assertEqual(evaluate("getPronunciationForWord(\"CAN'T\", 'word', 'ko')"), '캔�
 
 // Test 8: Fallback check
 assertEqual(evaluate("getPronunciationForWord('BE', 'word', 'ko')"), '베', 'Fallback - Should return fallback for unknown word (BE)');
+assertEqual(evaluate("composeHangul('g', 'a', '')"), '가', 'composeHangul - Happy path 1 (cho + jung)');
+assertEqual(evaluate("composeHangul('h', 'a', 'n')"), '한', 'composeHangul - Happy path 2 (cho + jung + jong)');
+assertEqual(evaluate("composeHangul('g', 'a')"), '가', 'composeHangul - Edge case 1 (undefined jong defaults to 0)');
+assertEqual(evaluate("composeHangul('', 'a', '')"), '아', 'composeHangul - Edge case 2 (empty cho)');
+assertEqual(evaluate("composeHangul('1', 'a', '')"), '', 'composeHangul - Error condition 1 (invalid cho)');
+assertEqual(evaluate("composeHangul('g', '1', '')"), '', 'composeHangul - Error condition 2 (invalid jung)');
 
 if (failed > 0) {
     console.error(`\nTests failed: ${failed}`);

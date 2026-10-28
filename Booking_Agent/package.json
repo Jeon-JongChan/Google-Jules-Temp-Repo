@@ -4,10 +4,11 @@
   "description": "A semi-automated booking agent for various ticket sites.",
   "main": "src/main/index.js",
   "scripts": {
+    "postinstall": "npx playwright install chromium",
     "start": "electron .",
     "pack": "electron-builder --dir",
     "dist": "electron-builder",
-    "test": "node tests/test_detect_site.js && node tests/test_seat_selection.js"
+    "test": "node tests/test_detect_site.js && node tests/test_seat_selection.js && node tests/test_automation_service.js && node tests/test_browser_facade.js"
   },
   "author": "Jules",
   "license": "ISC",

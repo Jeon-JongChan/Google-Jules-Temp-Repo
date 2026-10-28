@@ -248,6 +248,7 @@ function getPronunciationForWord(word, mode, targetLang = 'ko') {
     return cleanWord;
 }
 
+
 function getPronunciationForSentence(sentence, mode, targetLang = 'ko') {
     if (!sentence) return "";
 
@@ -271,7 +272,7 @@ function getPronunciationForSentence(sentence, mode, targetLang = 'ko') {
             }
 
             for (const [phrase, pronunciation] of cachedSortedMappings) {
-                const regex = new RegExp(`\\b${phrase}\\b`, 'gi');
+                const regex = new RegExp(`\b${phrase}\b`, 'gi');
                 processedSentence = processedSentence.replace(regex, pronunciation);
             }
         }

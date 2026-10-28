@@ -4,6 +4,7 @@ import { CodeParser } from '../core/parser';
 import { SymbolExtractor } from '../core/symbols';
 import { RelationExtractor } from '../core/relations';
 import { GraphCache } from './cache';
+import { SymbolInfo } from '../common/types';
 
 export class GraphIndex {
     private data: GraphData;
@@ -35,7 +36,7 @@ export class GraphIndex {
         this.removeFileEntries(filePath);
 
         try {
-            const content = fs.readFileSync(filePath, 'utf-8');
+            const content = await fs.promises.readFile(filePath, 'utf-8');
             const tree = this.parser.parse(content, language);
 
             if (tree) {
@@ -129,25 +130,37 @@ export class GraphIndex {
     }
 
     public resolveRelations() {
+        // Pre-calculate a map of symbols by name to avoid O(N*M) nested loops
+        const symbolsByName = new Map<string, { id: string, sym: SymbolInfo }[]>();
+        for (const symId in this.data.symbols) {
+            const sym = this.data.symbols[symId];
+            let list = symbolsByName.get(sym.name);
+            if (!list) {
+                list = [];
+                symbolsByName.set(sym.name, list);
+            }
+            list.push({ id: symId, sym });
+        }
+
         for (const id in this.data.relations) {
             const rel = this.data.relations[id];
             if (rel.kind === 'call' && rel.targetId.startsWith('unknown::')) {
                 const funcName = rel.targetId.split('::')[1];
-
                 const sourceFilePath = rel.sourceId.split('::')[0];
+
                 let exactMatch = null;
                 let fallbackMatch = null;
 
-                for (const symId in this.data.symbols) {
-                    const sym = this.data.symbols[symId];
-                    if (sym.name === funcName) {
-                        if (sym.filePath === sourceFilePath) {
+                const candidates = symbolsByName.get(funcName);
+                if (candidates) {
+                    for (const item of candidates) {
+                        if (item.sym.filePath === sourceFilePath) {
                             // Exact match in the same file
-                            exactMatch = symId;
+                            exactMatch = item.id;
                             break; // Highly confident it's this one
                         } else if (!fallbackMatch) {
                             // Keep the first external match as a fallback
-                            fallbackMatch = symId;
+                            fallbackMatch = item.id;
                         }
                     }
                 }
