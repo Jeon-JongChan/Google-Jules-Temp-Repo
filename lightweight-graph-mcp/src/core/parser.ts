@@ -1,6 +1,7 @@
 import { Language } from '../common/types';
 import * as fs from 'fs';
 import * as path from 'path';
+import languages from '../common/languages.json';
 
 // Using commonjs require to bypass TS module resolution issues with web-tree-sitter.
 // web-tree-sitter exposes the Parser class as a named export; normalize so this
@@ -8,13 +9,13 @@ import * as path from 'path';
 const webTreeSitter = require('web-tree-sitter');
 const Parser = webTreeSitter.Parser ?? webTreeSitter.default ?? webTreeSitter;
 
+/** 번들에 포함된 Tree-sitter WASM으로 코드를 파싱한다. */
 export class CodeParser {
     private parser: any | null = null;
     private initialized = false;
     private langCache = new Map<Language, any>();
 
-    constructor() {}
-
+    /** 실행 환경의 문법 WASM을 로드한다. */
     public async initialize(extensionPath?: string): Promise<void> {
         if (this.initialized) return;
 
@@ -23,7 +24,6 @@ export class CodeParser {
         // must be resolved here rather than at module load time.
         const Language = Parser.Language ?? webTreeSitter.Language;
         this.parser = new Parser();
-        this.initialized = true;
 
         if (!extensionPath) {
             // Test environment fallback
@@ -37,23 +37,18 @@ export class CodeParser {
         const wasmDir = fs.existsSync(path.join(packagedWasmDir, 'tree-sitter-javascript.wasm')) ? packagedWasmDir : devWasmDir;
 
         try {
-            const jsWasm = path.join(wasmDir, 'tree-sitter-javascript.wasm');
-            const jsLang = await Language.load(jsWasm);
-            this.langCache.set('javascript', jsLang);
-
-            const tsWasm = path.join(wasmDir, 'tree-sitter-typescript.wasm');
-            const tsLang = await Language.load(tsWasm);
-            this.langCache.set('typescript', tsLang);
-
-            const pyWasm = path.join(wasmDir, 'tree-sitter-python.wasm');
-            const pyLang = await Language.load(pyWasm);
-            this.langCache.set('python', pyLang);
+            for (const [language, config] of Object.entries(languages)) {
+                this.langCache.set(language as Language,
+                    await Language.load(path.join(wasmDir, `tree-sitter-${config.grammar}.wasm`)));
+            }
+            this.initialized = true;
         } catch (e) {
-            console.error('Failed to load WASM languages', e);
-            throw new Error(`Failed to load WASM languages: ${e}`);
+            this.dispose();
+            throw new Error(`문법 WASM 로드 실패: ${e}`);
         }
     }
 
+    /** 언어에 맞는 구문 트리를 생성한다. 호출자가 트리를 해제한다. */
     public parse(content: string, language: Language): any | null {
         if (!this.parser || !this.langCache.has(language)) return null;
 
@@ -67,10 +62,22 @@ export class CodeParser {
         }
     }
 
+    /** 파서와 문법의 WASM 자원을 해제한다. */
+    public dispose(): void {
+        this.parser?.delete();
+        this.parser = null;
+        for (const language of this.langCache.values()) language.delete?.();
+        this.langCache.clear();
+        this.initialized = false;
+    }
+
+    /** 지원하는 소스 확장자를 언어 이름으로 변환한다. */
     public static getLanguageFromFile(filePath: string): Language | null {
-        if (filePath.endsWith('.js') || filePath.endsWith('.jsx') || filePath.endsWith('.mjs') || filePath.endsWith('.cjs')) return 'javascript';
-        if (filePath.endsWith('.ts') || filePath.endsWith('.tsx') || filePath.endsWith('.mts') || filePath.endsWith('.cts')) return 'typescript';
-        if (filePath.endsWith('.py')) return 'python';
+        const extension = path.extname(filePath);
+        if (extension === '.C' || extension === '.H') return 'cpp';
+        for (const [language, config] of Object.entries(languages)) {
+            if (config.extensions.includes(extension.toLowerCase())) return language as Language;
+        }
         return null;
     }
 }

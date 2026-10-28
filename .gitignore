@@ -2,3 +2,5 @@
 *.exe
 node_modules/
 .archify
+VSCode AMI Tunning/
+.tools/.graphify/

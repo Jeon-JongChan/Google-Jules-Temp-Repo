@@ -1,14 +1,21 @@
 import { Language, Relation } from '../common/types';
 import * as path from 'path';
+import { nativeDeclaration, nativeScope } from './declarations';
 
+/** AST에 명시된 호출·임포트·상속 관계를 추출한다. */
 export class RelationExtractor {
+    /** 파일 하나의 모든 관계를 반환한다. */
     public extractRelations(tree: any, filePath: string, language: Language): Relation[] {
         const relations: Relation[] = [];
         this.traverseNode(tree.rootNode, filePath, language, relations);
         return relations;
     }
 
+    /** 언어별 추출기를 적용한 뒤 자식 노드를 방문한다. */
     private traverseNode(node: any, filePath: string, language: Language, relations: Relation[]) {
+        if (!['javascript', 'typescript', 'tsx', 'python'].includes(language)) {
+            relations.push(...this.extractNativeRelations(node, filePath, language));
+        }
         const relation = this.extractNodeRelation(node, filePath, language);
         if (relation) {
             relations.push(relation);
@@ -22,8 +29,60 @@ export class RelationExtractor {
         }
     }
 
+    /** Java·Go·Rust·C 계열의 관계와 출처 범위를 추출한다. */
+    private extractNativeRelations(node: any, filePath: string, language: Language): Relation[] {
+        const relations: Relation[] = [];
+        const scope = nativeScope(node, language) || 'global';
+        const range = {
+            start: { line: node.startPosition.row, character: node.startPosition.column },
+            end: { line: node.endPosition.row, character: node.endPosition.column }
+        };
+        if (['call_expression', 'method_invocation', 'invocation_expression', 'object_creation_expression'].includes(node.type)) {
+            const called = node.childForFieldName('function') ?? node.childForFieldName('name') ?? node.childForFieldName('type');
+            const name = (called?.childForFieldName('field') ?? called?.childForFieldName('name') ?? called)?.text?.split(/::|\.|->/).pop();
+            if (name) relations.push({
+                id: `${filePath}::call::${scope}->${name}@${node.startIndex}`,
+                sourceId: `${filePath}::${scope}`, targetId: `unknown::${name}`,
+                kind: 'call', certainty: 'EXTRACTED', range
+            });
+        }
+        let imported = '';
+        if (node.type === 'preproc_include') imported = node.childForFieldName('path')?.text ?? '';
+        else if (node.type === 'import_spec') imported = node.childForFieldName('path')?.text ?? '';
+        else if (node.type === 'use_declaration') imported = node.childForFieldName('argument')?.text ?? '';
+        else if (node.type === 'import_declaration' && language === 'java') imported = node.text.replace(/^import\s+(?:static\s+)?|;$/g, '');
+        else if (node.type === 'using_directive') imported = node.text.replace(/^using\s+|;$/g, '');
+        if (imported) {
+            const local = imported.startsWith('"') && ['c', 'cpp', 'objc', 'objcpp', 'cuda'].includes(language);
+            imported = imported.replace(/^["<`]|[">`]$/g, '');
+            if (local) imported = path.resolve(path.dirname(filePath), imported);
+            relations.push({ id: `${filePath}::import::${imported}`, sourceId: filePath,
+                targetId: imported, kind: 'import', certainty: 'EXTRACTED', range });
+        }
+        const declaration = nativeDeclaration(node, language);
+        if (declaration?.kind === 'class' || declaration?.kind === 'interface') {
+            const bases = [node.childForFieldName('superclass'), node.childForFieldName('interfaces'),
+                node.childForFieldName('bases'), node.namedChildren.find((child: any) => child.type === 'base_class_clause')];
+            for (const base of bases) {
+                if (!base) continue;
+                const candidates = base.type === 'identifier' ? [base] : base.namedChildren.flatMap((child: any) =>
+                    child.type === 'type_list' ? child.namedChildren : [child]);
+                for (const target of candidates) {
+                    if (target.type === 'access_specifier') continue;
+                    const kind = base.type === 'super_interfaces' ? 'implement' : 'inherit';
+                    const owner = [nativeScope(node, language), declaration.name].filter(Boolean).join('::');
+                    relations.push({ id: `${filePath}::${owner}::${kind}::${target.text}`,
+                        sourceId: `${filePath}::${owner}`, targetId: `unknown::${target.text}`,
+                        kind, certainty: 'EXTRACTED', range });
+                }
+            }
+        }
+        return relations;
+    }
+
+    /** JS/TS/Python의 기존 관계 규칙을 적용한다. */
     private extractNodeRelation(node: any, filePath: string, language: Language): Relation | null {
-        if (language === 'javascript' || language === 'typescript') {
+        if (language === 'javascript' || language === 'typescript' || language === 'tsx') {
             if (node.type === 'call_expression') {
                 const funcNode = node.childForFieldName('function');
                 if (funcNode) {
@@ -118,6 +177,7 @@ export class RelationExtractor {
         return null;
     }
 
+    /** 상대 임포트 경로를 파일 시스템 기준으로 변환한다. */
     private resolveImportPath(currentFilePath: string, importPath: string, language: Language): string {
         if (importPath.startsWith('.')) {
             const dir = path.dirname(currentFilePath);
@@ -130,13 +190,14 @@ export class RelationExtractor {
         return importPath;
     }
 
+    /** 심볼 추출과 동일한 중첩 범위를 호출자 ID로 사용한다. */
     private findEnclosingSymbol(node: any, language: Language): string {
         let current: any | null = node.parent;
         const scopeParts: string[] = [];
 
         while (current) {
             let name = '';
-            if (language === 'javascript' || language === 'typescript') {
+            if (language === 'javascript' || language === 'typescript' || language === 'tsx') {
                 if (current.type === 'class_declaration' || current.type === 'interface_declaration') {
                     name = current.childForFieldName('name')?.text || '';
                 } else if (current.type === 'function_declaration' || current.type === 'method_definition') {

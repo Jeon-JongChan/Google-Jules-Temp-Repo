@@ -80,8 +80,8 @@ describe('Graph Tools Tests', () => {
         expect(data.relations['rel1'].targetId).toBe('file1.ts::helper');
         expect(data.relations['rel1'].certainty).toBe('RESOLVED');
 
-        // External fallback -> INFERRED
-        expect(data.relations['rel2'].targetId).toMatch(/file[12]\.ts::helper/);
-        expect(data.relations['rel2'].certainty).toBe('INFERRED');
+        // 외부 후보가 둘이면 임의로 연결하지 않는다.
+        expect(data.relations['rel2'].targetId).toBe('unknown::helper');
+        expect(data.relations['rel2'].certainty).toBe('UNRESOLVED');
     });
 });

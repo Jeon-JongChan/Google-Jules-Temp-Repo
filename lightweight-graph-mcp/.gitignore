@@ -10,3 +10,4 @@ out/
 !.build/*.md
 !.build/*.cmd
 .build/activate.ps1
+.test

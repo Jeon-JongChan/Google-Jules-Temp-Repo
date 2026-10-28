@@ -1,12 +1,16 @@
 import { Language, SymbolInfo, SymbolKind } from '../common/types';
+import { nativeDeclaration, nativeScope } from './declarations';
 
+/** 언어별 AST 선언을 공통 심볼로 추출한다. */
 export class SymbolExtractor {
+    /** 트리의 선언을 파일과 언어 정보와 함께 반환한다. */
     public extractSymbols(tree: any, filePath: string, language: Language): SymbolInfo[] {
         const symbols: SymbolInfo[] = [];
         this.traverseNode(tree.rootNode, filePath, language, symbols);
         return symbols;
     }
 
+    /** 중첩 선언을 포함하여 모든 자식 노드를 방문한다. */
     private traverseNode(node: any, filePath: string, language: Language, symbols: SymbolInfo[]) {
         const symbol = this.extractNodeSymbol(node, filePath, language);
         if (symbol) {
@@ -21,11 +25,12 @@ export class SymbolExtractor {
         }
     }
 
+    /** 선언의 종류와 이름, 부모 범위를 판별한다. */
     private extractNodeSymbol(node: any, filePath: string, language: Language): SymbolInfo | null {
         let name = '';
         let kind: SymbolKind | null = null;
 
-        if (language === 'javascript' || language === 'typescript') {
+        if (language === 'javascript' || language === 'typescript' || language === 'tsx') {
             if (node.type === 'class_declaration') {
                 kind = 'class';
                 name = node.childForFieldName('name')?.text || '';
@@ -70,6 +75,9 @@ export class SymbolExtractor {
                 kind = 'function';
                 name = node.childForFieldName('name')?.text || '';
             }
+        } else {
+            const declaration = nativeDeclaration(node, language);
+            if (declaration) ({ name, kind } = declaration);
         }
 
         if (kind && name) {
@@ -92,13 +100,15 @@ export class SymbolExtractor {
         return null;
     }
 
+    /** 공통 식별자에 사용할 중첩 범위를 구한다. */
     private getEnclosingScopeName(node: any, language: Language): string {
+        if (!['javascript', 'typescript', 'tsx', 'python'].includes(language)) return nativeScope(node, language);
         let current = node.parent;
         const scopeParts: string[] = [];
 
         while (current) {
             let name = '';
-            if (language === 'javascript' || language === 'typescript') {
+            if (language === 'javascript' || language === 'typescript' || language === 'tsx') {
                 if (current.type === 'class_declaration' || current.type === 'interface_declaration') {
                     name = current.childForFieldName('name')?.text || '';
                 } else if (current.type === 'function_declaration' || current.type === 'method_definition') {

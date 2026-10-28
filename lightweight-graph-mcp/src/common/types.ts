@@ -1,4 +1,6 @@
-export type Language = 'javascript' | 'typescript' | 'python';
+import languages from './languages.json';
+
+export type Language = keyof typeof languages;
 
 export interface Position {
     line: number;

@@ -2,20 +2,25 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { GraphTools } from "./tools";
-import * as fs from 'fs';
+import * as path from 'path';
 import { GraphCache } from '../storage/cache';
+import { GraphData } from '../common/types';
+import { buildProjectIndex } from '../core/build';
+import languages from '../common/languages.json';
 
+/** 고정된 프로젝트의 그래프 생성 및 조회 도구를 제공한다. */
 export class GraphMcpServer {
     private server: McpServer;
     private cache: GraphCache;
     private tools: GraphTools;
-    private lastLoadedTime: number = 0;
-    private graphData: any = { version: '1.0', symbols: {}, relations: {} };
+    private indexBuilt = false;
+    private graphData: GraphData = { version: '1.0', symbols: {}, relations: {} };
 
-    constructor(workspaceRoot: string) {
+    /** stdio 프로세스를 시작한 프로젝트에 도구 접근 범위를 고정한다. */
+    constructor(private readonly workspaceRoot: string) {
         this.server = new McpServer({
             name: "Lightweight Graph MCP",
-            version: "1.0.0"
+            version: "1.0.1"
         });
 
         this.cache = new GraphCache(workspaceRoot);
@@ -24,25 +29,27 @@ export class GraphMcpServer {
         this.registerTools();
     }
 
+    /** 캐시 초기화와 이전 경로도 반영하여 오래된 메모리 결과를 반환하지 않는다. */
     private async reloadIndexIfNeeded() {
-        try {
-            const cachePath = this.cache.getCachePath();
-            if (fs.existsSync(cachePath)) {
-                const stat = fs.statSync(cachePath);
-                if (stat.mtimeMs > this.lastLoadedTime) {
-                    const loaded = await this.cache.load();
-                    if (loaded) {
-                        this.graphData = loaded;
-                        this.lastLoadedTime = stat.mtimeMs;
-                    }
-                }
-            }
-        } catch (e) {
-            console.error('Failed to reload index:', e);
-        }
+        const loaded = await this.cache.load();
+        this.indexBuilt = loaded !== null;
+        this.graphData = loaded ?? { version: '1.0', symbols: {}, relations: {} };
     }
 
+    /** 쓰기 도구 하나와 기존 조회 도구를 등록한다. */
     private registerTools() {
+        this.server.tool('build_index',
+            '현재 프로젝트의 코드 그래프를 생성·갱신합니다. 소스는 변경하지 않으며 .tools/.graphify에 저장합니다. 변경 후 또는 색인이 없을 때 호출하세요.',
+            {},
+            async () => {
+                try {
+                    const result = await buildProjectIndex(this.workspaceRoot, path.resolve(__dirname, '../..'));
+                    await this.reloadIndexIfNeeded();
+                    return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+                } catch (error) {
+                    return { isError: true, content: [{ type: 'text' as const, text: `그래프 생성 실패: ${error}` }] };
+                }
+            });
         this.server.tool("search_symbols",
             "Search for functions and classes by name or pattern",
             {
@@ -159,14 +166,17 @@ export class GraphMcpServer {
             async () => {
                 await this.reloadIndexIfNeeded();
                 const symbolsCount = Object.keys(this.graphData.symbols).length;
-                const status = symbolsCount === 0 ? "NotBuilt" : "Ready";
+                const status = this.indexBuilt ? "Ready" : "NotBuilt";
                 return {
                     content: [
                         { type: "text", text: JSON.stringify({
                             status,
                             symbolsCount,
                             relationsCount: Object.keys(this.graphData.relations).length,
-                            supportedLanguages: ["javascript", "typescript", "python"]
+                            supportedLanguages: Object.keys(languages),
+                            cachePath: this.cache.getCachePath(),
+                            generationMode: 'manual',
+                            buildTool: 'build_index'
                         }, null, 2) }
                     ]
                 };
@@ -174,6 +184,7 @@ export class GraphMcpServer {
         );
     }
 
+    /** stdout을 MCP 전용으로 유지하며 stdio 전송을 시작한다. */
     public async start() {
         await this.reloadIndexIfNeeded();
         const transport = new StdioServerTransport();

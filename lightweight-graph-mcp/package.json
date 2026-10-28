@@ -3,9 +3,9 @@
   "publisher": "graph-mcp-dev",
   "displayName": "Lightweight Graph MCP",
   "description": "Lightweight Code Graph MCP for VS Code",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "engines": {
-    "vscode": "^1.90.0"
+    "vscode": "^1.102.0"
   },
   "categories": [
     "Other"
@@ -15,7 +15,21 @@
   ],
   "main": "./dist/extension/extension.js",
   "contributes": {
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "lightweight-graph-mcp",
+        "label": "Lightweight Graph MCP"
+      }
+    ],
     "commands": [
+      {
+        "command": "graph-mcp.quickActions",
+        "title": "Graph MCP: 빠른 실행"
+      },
+      {
+        "command": "graph-mcp.manageMcp",
+        "title": "Graph MCP: MCP 서버 시작·중지"
+      },
       {
         "command": "graph-mcp.buildIndex",
         "title": "Graph MCP: Build Index"
@@ -40,7 +54,7 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run bundle",
-    "bundle": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && node esbuild.js --production",
+    "bundle": "node esbuild.js --production",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile",

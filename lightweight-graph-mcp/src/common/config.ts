@@ -1,5 +1,10 @@
 export const DEFAULT_EXCLUDED_FOLDERS = [
     '.git',
+    '.tools',
+    '.mcp',
+    '.test',
+    '.build',
+    'VSCode AMI Tunning',
     'node_modules',
     '.venv',
     'venv',

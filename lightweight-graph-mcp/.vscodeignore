@@ -5,6 +5,8 @@ node_modules/**
 out/**
 src/**
 tests/**
+.test/**
+.tools/**
 .gitignore
 .yarnrc
 tsconfig.json

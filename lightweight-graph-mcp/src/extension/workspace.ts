@@ -1,150 +1,76 @@
 import * as vscode from 'vscode';
-import { GraphIndex } from '../storage/index';
 import * as path from 'path';
-import * as fs from 'fs';
-import { DEFAULT_EXCLUDED_FOLDERS, MAX_FILE_SIZE_BYTES } from '../common/config';
+import { buildProjectIndex, withIndexLock } from '../core/build';
+import { GraphCache } from '../storage/cache';
 
+/** 선택한 프로젝트의 그래프를 명시적으로 생성한다. */
 export class WorkspaceManager {
-    private index: GraphIndex | null = null;
-    private fileWatcher: vscode.FileSystemWatcher | null = null;
-    private extensionPath: string;
+    private busy = false;
+    /** 상태표시줄과 확장 자산 경로를 보관한다. */
+    constructor(private context: vscode.ExtensionContext, private statusBar: vscode.StatusBarItem) {}
+    /** 자동 생성 없이 빠른 실행을 안내한다. */
+    public initialize(): void { this.updateStatus('그래프 생성'); }
 
-    constructor(context: vscode.ExtensionContext, private statusBar: vscode.StatusBarItem) {
-        this.extensionPath = context.extensionPath;
+    /** 활성 편집기의 루트를 우선 선택하고 다중 프로젝트에서는 선택을 받는다. */
+    private async selectRoot(): Promise<string | undefined> {
+        if (!vscode.workspace.isTrusted) throw new Error('신뢰한 작업 영역에서 그래프를 생성하세요.');
+        const folders = vscode.workspace.workspaceFolders ?? [];
+        if (!folders.length) throw new Error('먼저 분석할 프로젝트 폴더를 여세요.');
+        const editor = vscode.window.activeTextEditor;
+        const active = editor && vscode.workspace.getWorkspaceFolder(editor.document.uri);
+        const folder = active ?? (folders.length === 1 ? folders[0] :
+            await vscode.window.showQuickPick(folders.map(folder => ({
+                label: folder.name, description: folder.uri.fsPath, folder
+            })), { placeHolder: '그래프를 생성할 프로젝트 선택' }).then(item => item?.folder));
+        if (folder && folder.uri.scheme !== 'file') throw new Error('로컬 파일 시스템 프로젝트만 지원합니다.');
+        return folder?.uri.fsPath;
     }
 
-    public async initialize() {
-        const workspaceFolders = vscode.workspace.workspaceFolders;
-        if (!workspaceFolders || workspaceFolders.length === 0) return;
-
-        const root = workspaceFolders[0].uri.fsPath;
-        this.index = new GraphIndex(root, this.extensionPath);
-        try {
-            await this.index.initialize();
-            this.setupWatcher();
-            this.updateStatus('Ready');
-
-            // Trigger initial build in background if it's empty
-            if (Object.keys(this.index.getGraphData().symbols).length === 0) {
-                setTimeout(() => {
-                    this.buildIndex();
-                }, 1000);
-            }
-
-        } catch (e) {
-            this.updateStatus('Error: WASM Load Failed');
-            vscode.window.showErrorMessage(`Graph MCP: Failed to initialize. ${e}`);
-        }
-    }
-
-    private setupWatcher() {
-        this.fileWatcher = vscode.workspace.createFileSystemWatcher('**/*.{ts,tsx,js,jsx,mjs,cjs,mts,cts,py}');
-
-        this.fileWatcher.onDidChange(uri => this.handleFileChange(uri));
-        this.fileWatcher.onDidCreate(uri => this.handleFileChange(uri));
-        this.fileWatcher.onDidDelete(uri => this.handleFileDelete(uri));
-    }
-
-    private async handleFileChange(uri: vscode.Uri) {
-        if (!this.index || this.shouldIgnore(uri.fsPath)) return;
-        try {
-            await this.index.updateFile(uri.fsPath);
-        } catch (e) {
-            console.error('File update failed:', e);
-        }
-    }
-
-    private async handleFileDelete(uri: vscode.Uri) {
-        if (!this.index) return;
-        try {
-            await this.index.removeFile(uri.fsPath);
-        } catch (e) {
-            console.error('File remove failed:', e);
-        }
-    }
-
-    private shouldIgnore(filePath: string): boolean {
-        const segments = filePath.split(path.sep);
-        return DEFAULT_EXCLUDED_FOLDERS.some(folder => segments.includes(folder));
-    }
-
-    public async buildIndex() {
-        if (!this.index) return;
-
-        this.updateStatus('Indexing...');
-        const workspaceFolders = vscode.workspace.workspaceFolders;
-        if (!workspaceFolders || workspaceFolders.length === 0) {
-            this.updateStatus('Ready');
+    /** MCP와 생성 함수를 공유하고 중복 실행과 오류를 표시한다. */
+    public async buildIndex(): Promise<void> {
+        if (this.busy) {
+            vscode.window.showInformationMessage('Graph MCP: 이미 그래프를 생성 중입니다.');
             return;
         }
-
+        this.busy = true;
         try {
-            const validExts = ['.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs', '.mts', '.cts', '.py'];
-            for (const folder of workspaceFolders) {
-                const root = folder.uri.fsPath;
-                const files = this.walkDir(root);
-                for (const file of files) {
-                    if (validExts.some(ext => file.endsWith(ext))) {
-                        try {
-                            const stat = fs.statSync(file);
-                            if (stat.size <= MAX_FILE_SIZE_BYTES) {
-                                await this.index.updateFile(file, true);
-                            }
-                        } catch (e) {
-                            // ignore file stat errors
-                        }
-                        // Yield to event loop to avoid freezing Extension Host
-                        await new Promise(resolve => setTimeout(resolve, 0));
-                    }
-                }
-            }
-            await this.index.saveCache();
-            this.updateStatus('Ready');
-            vscode.window.showInformationMessage('Graph MCP: Index build complete.');
-        } catch (e) {
-            this.updateStatus('Error');
-            console.error(e);
-        }
+            const root = await this.selectRoot();
+            if (!root) return;
+            this.updateStatus('생성 중', true);
+            const result = await vscode.window.withProgress({
+                location: vscode.ProgressLocation.Notification,
+                title: `Graph MCP: ${path.basename(root)} 그래프 생성`
+            }, () => buildProjectIndex(root, this.context.extensionPath));
+            this.updateStatus(result.parseErrorFiles.length ? '구문 경고' : '준비');
+            const message = `Graph MCP: ${result.filesIndexed}개 파일, ${result.symbolsCount}개 심볼 생성 완료. 건너뜀 ${result.filesSkipped}개, 구문 경고 ${result.parseErrorFiles.length}개.`;
+            if (result.parseErrorFiles.length) vscode.window.showWarningMessage(message);
+            else vscode.window.showInformationMessage(message);
+        } catch (error) {
+            this.updateStatus('오류');
+            vscode.window.showErrorMessage(`Graph MCP: ${error}`);
+        } finally { this.busy = false; }
     }
 
-    public async clearCache() {
-        if (this.index) {
-            await this.index.clear();
-            vscode.window.showInformationMessage('Graph MCP: Cache cleared.');
-        }
-    }
-
-    private walkDir(dir: string): string[] {
-        let results: string[] = [];
+    /** 대상 경로를 먼저 보여주고 승인된 프로젝트 캐시만 초기화한다. */
+    public async clearCache(): Promise<void> {
         try {
-            const list = fs.readdirSync(dir);
-            list.forEach(file => {
-                file = path.join(dir, file);
-                if (this.shouldIgnore(file)) return;
-
-                try {
-                    const stat = fs.statSync(file);
-                    if (stat && stat.isDirectory()) {
-                        results = results.concat(this.walkDir(file));
-                    } else {
-                        results.push(file);
-                    }
-                } catch(e) {}
-            });
-        } catch (e) {
-            // ignore
-        }
-        return results;
+            const root = await this.selectRoot();
+            if (!root) return;
+            const cache = new GraphCache(root);
+            const answer = await vscode.window.showWarningMessage(
+                `그래프 캐시를 빈 스냅샷으로 초기화합니다: ${cache.getCachePath()}\n기존 조회 결과를 비우며 소스 파일은 변경하지 않습니다.`,
+                { modal: true }, '초기화');
+            if (answer !== '초기화') return;
+            await withIndexLock(root, () => cache.clear());
+            this.updateStatus('그래프 생성');
+        } catch (error) { vscode.window.showErrorMessage(`Graph MCP: 캐시 초기화 실패. ${error}`); }
     }
 
-    private updateStatus(text: string) {
-        this.statusBar.text = `Graph MCP: ${text}`;
+    /** 색인 상태만 표시하며 MCP 실행 상태로 오인하지 않게 한다. */
+    private updateStatus(text: string, spinning = false): void {
+        this.statusBar.text = `${spinning ? '$(sync~spin)' : '$(type-hierarchy)'} Graph: ${text}`;
         this.statusBar.show();
     }
-
-    public dispose() {
-        if (this.fileWatcher) {
-            this.fileWatcher.dispose();
-        }
-    }
+    /** 소유 자원은 확장의 subscriptions에서 정리한다. */
+    public dispose(): void {}
 }

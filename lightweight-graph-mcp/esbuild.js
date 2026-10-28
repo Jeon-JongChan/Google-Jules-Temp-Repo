@@ -1,6 +1,7 @@
 const esbuild = require("esbuild");
 const fs = require("fs");
 const path = require("path");
+const languages = require("./src/common/languages.json");
 
 const production = process.argv.includes('--production');
 const watch = process.argv.includes('--watch');
@@ -34,11 +35,13 @@ const esbuildProblemMatcherPlugin = {
 const wasmAssets = [
     ['node_modules/web-tree-sitter/tree-sitter.wasm', 'dist/extension/tree-sitter.wasm'],
     ['node_modules/web-tree-sitter/tree-sitter.wasm', 'dist/mcp/tree-sitter.wasm'],
-    ['node_modules/tree-sitter-wasms/out/tree-sitter-javascript.wasm', 'dist/wasm/tree-sitter-javascript.wasm'],
-    ['node_modules/tree-sitter-wasms/out/tree-sitter-typescript.wasm', 'dist/wasm/tree-sitter-typescript.wasm'],
-    ['node_modules/tree-sitter-wasms/out/tree-sitter-python.wasm', 'dist/wasm/tree-sitter-python.wasm'],
+    ...[...new Set(Object.values(languages).map(language => language.grammar))].map(grammar => [
+        `node_modules/tree-sitter-wasms/out/tree-sitter-${grammar}.wasm`,
+        `dist/wasm/tree-sitter-${grammar}.wasm`
+    ]),
 ];
 
+/** 지원 언어 목록에 있는 문법만 번들에 복사한다. */
 function copyWasmAssets() {
     for (const [src, dest] of wasmAssets) {
         fs.mkdirSync(path.dirname(dest), { recursive: true });
@@ -47,6 +50,7 @@ function copyWasmAssets() {
     console.log('[assets] wasm files copied to dist/');
 }
 
+/** 확장과 stdio 서버를 별도 번들로 생성한다. */
 async function main() {
     const extensionCtx = await esbuild.context({
         entryPoints: ['src/extension/extension.ts'],
