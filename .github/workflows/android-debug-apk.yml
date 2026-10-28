@@ -21,6 +21,7 @@ jobs:
           gradle-version: '8.11.1'
       - name: Install Android SDK
         run: |
+          export PATH="${ANDROID_HOME:-/usr/local/lib/android/sdk}/cmdline-tools/latest/bin:$PATH"
           yes | sdkmanager --licenses
           sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
       - name: Assemble APK
