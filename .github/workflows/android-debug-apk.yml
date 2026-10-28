@@ -23,7 +23,7 @@ jobs:
         run: |
           export PATH="${ANDROID_HOME:-/usr/local/lib/android/sdk}/cmdline-tools/latest/bin:$PATH"
           yes | sdkmanager --licenses
-          sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+          sdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'platforms;android-36'
       - name: Assemble APK
         working-directory: 'Google AI Visual Studio'
         run: gradle :app:assembleDebug --stacktrace
