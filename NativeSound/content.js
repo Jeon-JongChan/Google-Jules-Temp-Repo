@@ -10,9 +10,25 @@ chrome.storage.local.get(['pronunciation_mode', 'source_lang', 'target_lang', 'i
         return;
     }
     if (result.pronunciation_mode) currentMode = result.pronunciation_mode;
-    if (result.source_lang) sourceLang = result.source_lang;
-    if (result.target_lang) targetLang = result.target_lang;
+
+    // Validate targetLang (ko only for now, fallbacks to ko)
+    if (result.target_lang && result.target_lang === 'ko') {
+        targetLang = 'ko';
+    } else {
+        targetLang = 'ko';
+    }
+
+    // Validate sourceLang (auto or en)
+    if (result.source_lang && (result.source_lang === 'en' || result.source_lang === 'auto')) {
+        sourceLang = result.source_lang;
+    } else {
+        sourceLang = 'auto';
+    }
+
     if (result.is_enabled !== undefined) isEnabled = result.is_enabled;
+
+    // Start observer only after settings are loaded to avoid race conditions
+    startBodyObserver();
 });
 
 // Listen for setting changes
@@ -92,17 +108,11 @@ function processCaptionNode(node) {
     const originalText = cloneNode.textContent.trim();
     if (!originalText) return;
 
-    // Non-speech subtitle check (e.g. [Music], ♪)
-    if (originalText.includes('♪') || (originalText.startsWith('[') && originalText.endsWith(']'))) {
-        return;
-    }
+    // 비발화 체크 로직은 pronunciation.js에서 일괄 처리하도록 이관하여
+    // 이곳에서는 제거합니다. (단위 테스트를 쉽게 하기 위함)
 
     // Source language check
-    if (sourceLang === 'en') {
-        if (!/[a-zA-Z]/.test(originalText)) return;
-    } else {
-        if (!/[a-zA-Z]/.test(originalText)) return;
-    }
+    if (!/[a-zA-Z]/.test(originalText)) return;
 
     const processedTextAttr = node.getAttribute('data-native-sound-processed-text');
     if (processedTextAttr === originalText) {
@@ -146,6 +156,10 @@ const startCaptionObserver = (container) => {
 };
 
 const startBodyObserver = () => {
+    // [미구현/한계 명시]: 다음 자막을 미리 화면에 나오도록 띄우는 기능은 현재 구현이 불가능합니다.
+    // 유튜브 자막은 플레이어 서버에서 실시간으로 로드되어 DOM(.ytp-caption-segment)에 삽입되므로,
+    // 클라이언트의 MutationObserver 방식으로는 화면에 그려지기 전의 '미래의 자막 데이터'에 접근할 수 없습니다.
+
     // 1. 자막 컨테이너가 이미 있는지 확인
     let container = document.querySelector('.ytp-caption-window-container');
     if (container) {
@@ -156,6 +170,8 @@ const startBodyObserver = () => {
     // 2. 없다면 MutationObserver 대신 setInterval로 가볍게 폴링하여 기다림. (body subtree 감시 지양)
     let attempts = 0;
     const maxAttempts = 30; // 30번 (약 15초) 시도
+    // [한계 명시]: 15초 내에 컨테이너가 나타나지 않으면 어쩔 수 없이 document.body 전체를 subtree:true로 감시해야 하는
+    // MutationObserver 성능 최적화의 기술적 한계가 존재합니다.
 
     if (checkInterval) clearInterval(checkInterval);
     checkInterval = setInterval(() => {
@@ -173,9 +189,3 @@ const startBodyObserver = () => {
         }
     }, 500);
 };
-
-if (document.body) {
-    startBodyObserver();
-} else {
-    document.addEventListener('DOMContentLoaded', startBodyObserver);
-}
