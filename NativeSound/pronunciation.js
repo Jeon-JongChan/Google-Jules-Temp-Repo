@@ -197,6 +197,8 @@ function getPronunciationForWord(word, mode, targetLang = 'ko') {
     return cleanWord;
 }
 
+let cachedSortedMappings = null;
+
 function getPronunciationForSentence(sentence, mode, targetLang = 'ko') {
     if (!sentence) return "";
 
@@ -206,12 +208,12 @@ function getPronunciationForSentence(sentence, mode, targetLang = 'ko') {
     if (mode === 'conversation') {
         if (targetLang === 'ko') {
             // 구문의 길이가 긴 것부터 치환하도록 정렬 (캐싱을 통한 성능 개선)
-            if (!this.cachedSortedMappings) {
-                this.cachedSortedMappings = Object.entries(conversationalMapping)
+            if (!cachedSortedMappings) {
+                cachedSortedMappings = Object.entries(conversationalMapping)
                     .sort((a, b) => b[0].length - a[0].length);
             }
 
-            for (const [phrase, pronunciation] of this.cachedSortedMappings) {
+            for (const [phrase, pronunciation] of cachedSortedMappings) {
                 const regex = new RegExp(`\\b${phrase}\\b`, 'gi');
                 processedSentence = processedSentence.replace(regex, pronunciation);
             }
