@@ -42,7 +42,7 @@ extract_one() {
  # 명시적 || fail: update의 `if (install_x)` 안에서는 set -e가 꺼져 실패한 압축 해제가 성공으로 보고된다
  if [[ "$archive" == *.zip ]]; then requires unzip; unzip -q "$archive" -d "$staging" || fail "Cannot extract $archive"; else requires tar; tar -xf "$archive" -C "$staging" || fail "Cannot extract $archive"; fi
  local dirs=("$staging"/*)
- if [[ ${#dirs[@]} -eq 1 && -d ${dirs[0]} ]]; then cp -a "${dirs[0]}/." "$into/" || fail "Cannot copy into $into"; else cp -a "$staging/." "$into/" || fail "Cannot copy into $into"; fi
+ if [[ ${#dirs[@]} -eq 1 && -d ${dirs[0]} ]]; then cp -a --no-preserve=ownership "${dirs[0]}/." "$into/" || fail "Cannot copy into $into"; else cp -a --no-preserve=ownership "$staging/." "$into/" || fail "Cannot copy into $into"; fi
  rm -rf "$staging"
 }
 ANDROID_API=36 BUILD_TOOLS=36.0.0 JDK_MAJOR=21 NDK_VERSION=27.2.12479018 WITH_NDK=0 WITH_ADB=0 ACCEPT_LICENSES=0
