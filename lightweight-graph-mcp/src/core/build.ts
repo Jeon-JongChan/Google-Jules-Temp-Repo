@@ -6,6 +6,14 @@ import { DEFAULT_EXCLUDED_FOLDERS, MAX_FILE_SIZE_BYTES } from '../common/config'
 import { CodeParser } from './parser';
 import { writeGraphExport } from '../storage/export';
 
+/** 실시간 감시(Watch) 동작 옵션이다. */
+export interface WatchOptions {
+    debounceMs?: number;
+    onRebuildStart?: (changedFiles: string[]) => void;
+    onRebuildDone?: (result: Awaited<ReturnType<typeof buildProjectIndex>>) => void;
+    onRebuildError?: (error: unknown) => void;
+}
+
 /** 확장과 MCP가 같은 프로젝트의 캐시를 동시에 쓰지 못하게 한다. */
 export async function withIndexLock<T>(root: string, action: () => Promise<T>): Promise<T> {
     if (!path.isAbsolute(root) || !fs.statSync(root).isDirectory()) {
@@ -72,7 +80,6 @@ export async function buildProjectIndex(root: string, extensionPath: string) {
         try {
             await visit(root);
             // 전체 심볼이 모인 뒤 해석해야 순회 순서가 외부 호출 대상을 결정하지 않는다.
-            index.resolveImports();
             index.resolveRelations();
             const data = index.getGraphData();
             const parseErrorFiles = index.getParseErrorFiles();
@@ -92,4 +99,124 @@ export async function buildProjectIndex(root: string, extensionPath: string) {
             index.dispose();
         }
     });
+}
+
+/** Graphify Watch와 동일하게 소스 파일 변경을 디바운스 감시하고 코드 그래프를 자동 갱신한다. */
+export class ProjectWatcher {
+    private fsWatcher: fs.FSWatcher | null = null;
+    private timer: NodeJS.Timeout | null = null;
+    private changedFiles = new Set<string>();
+    private active = false;
+    private building = false;
+    private pendingRebuild = false;
+    private currentRun: Promise<void> | null = null;
+    private readonly debounceMs: number;
+    private readonly realRoot: string;
+
+    /** 감시할 프로젝트 루트와 확장 자산 경로, 디바운스 옵션을 설정한다. */
+    constructor(root: string, private readonly extensionPath: string, private readonly options: WatchOptions = {}) {
+        this.realRoot = fs.existsSync(root) ? fs.realpathSync(root) : path.resolve(root);
+        this.debounceMs = options.debounceMs ?? 2500;
+    }
+
+    /** 제외 폴더와 비지원 확장자를 걸러내고 실제 색인 대상 소스인지 판별한다. */
+    public shouldTrackFile(filePath: string): boolean {
+        const resolved = path.resolve(filePath);
+        const rel = path.relative(this.realRoot, resolved);
+        if (!rel || rel.startsWith('..') || path.isAbsolute(rel)) return false;
+        const parts = rel.split(path.sep);
+        if (parts.some(part => DEFAULT_EXCLUDED_FOLDERS.includes(part) || part.startsWith('.'))) {
+            return false;
+        }
+        return Boolean(CodeParser.getLanguageFromFile(resolved));
+    }
+
+    /** 파일 시스템 감시를 시작한다. */
+    public start(): void {
+        if (this.active) return;
+        this.active = true;
+        try {
+            this.fsWatcher = fs.watch(this.realRoot, { recursive: true }, (_event, filename) => {
+                if (!filename) return;
+                this.notifyFileChanged(path.join(this.realRoot, filename.toString()));
+            });
+            this.fsWatcher.on('error', err => this.options.onRebuildError?.(err));
+        } catch {
+            // fs.watch recursive 미지원 환경에서는 외부 이벤트(notifyFileChanged)로 동작한다.
+        }
+    }
+
+    /** 단일 파일 변경 이벤트를 등록하고 디바운스 타이머를 재설정한다. */
+    public notifyFileChanged(filePath: string): void {
+        if (!this.active || !this.shouldTrackFile(filePath)) return;
+        this.changedFiles.add(path.resolve(filePath));
+        if (this.timer) clearTimeout(this.timer);
+        this.timer = setTimeout(() => {
+            this.timer = null;
+            this.currentRun = this.runRebuildLoop();
+        }, this.debounceMs);
+    }
+
+    /** 진행 중인 생성과 대기 중인 변경 사항을 순차 처리한다. */
+    private async runRebuildLoop(): Promise<void> {
+        if (this.building) {
+            this.pendingRebuild = true;
+            return;
+        }
+        this.building = true;
+        try {
+            do {
+                this.pendingRebuild = false;
+                const batch = [...this.changedFiles];
+                this.changedFiles.clear();
+                if (!this.active) break;
+                this.options.onRebuildStart?.(batch);
+                try {
+                    const result = await buildProjectIndex(this.realRoot, this.extensionPath);
+                    this.options.onRebuildDone?.(result);
+                } catch (error) {
+                    this.options.onRebuildError?.(error);
+                }
+            } while (this.pendingRebuild && this.active);
+        } finally {
+            this.building = false;
+            this.currentRun = null;
+        }
+    }
+
+    /** 예약된 디바운스 타이머와 실행 중인 그래프 갱신이 모두 끝날 때까지 대기한다. */
+    public async waitForIdle(): Promise<void> {
+        while (this.timer || this.building || this.currentRun) {
+            if (this.currentRun) {
+                await this.currentRun;
+            } else {
+                await new Promise(resolve => setTimeout(resolve, 25));
+            }
+        }
+    }
+
+    /** 현재 감시 활성화 여부를 반환한다. */
+    public isWatching(): boolean {
+        return this.active;
+    }
+
+    /** 감시 중인 프로젝트 루트 경로를 반환한다. */
+    public getRoot(): string {
+        return this.realRoot;
+    }
+
+    /** 타이머와 파일 감시 자원을 정리하고 감시를 중지한다. */
+    public stop(): void {
+        this.active = false;
+        if (this.timer) {
+            clearTimeout(this.timer);
+            this.timer = null;
+        }
+        if (this.fsWatcher) {
+            this.fsWatcher.close();
+            this.fsWatcher = null;
+        }
+        this.changedFiles.clear();
+        this.pendingRebuild = false;
+    }
 }

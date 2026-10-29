@@ -1,12 +1,14 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
+import { execFile } from 'child_process';
 import { GraphMcpServerProvider } from './mcp-provider';
 import { WorkspaceManager } from './workspace';
 
-/** 그래프 생성과 MCP 관리를 상태표시줄에 등록한다. */
+/** 그래프 생성과 실시간 감시(Watch), MCP 관리를 상태표시줄에 등록한다. */
 export function activate(context: vscode.ExtensionContext): void {
     const statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
     statusBar.command = 'graph-mcp.quickActions';
-    statusBar.tooltip = '프로젝트 그래프 생성 / MCP 서버 시작·중지 / Llama Agent';
+    statusBar.tooltip = '프로젝트 그래프 생성 / 실시간 감시(Watch) / MCP 서버 시작·중지 / Antigravity·Codex 연결 / Llama Agent';
     statusBar.accessibilityInformation = { label: 'Graph MCP 빠른 실행' };
     context.subscriptions.push(statusBar);
     const manager = new WorkspaceManager(context, statusBar);
@@ -16,6 +18,7 @@ export function activate(context: vscode.ExtensionContext): void {
         vscode.commands.registerCommand('graph-mcp.buildIndex', () => manager.buildIndex()),
         // 완성 후 교체하므로 재생성 전에 기존 캐시를 지울 필요가 없다.
         vscode.commands.registerCommand('graph-mcp.rebuildIndex', () => manager.buildIndex()),
+        vscode.commands.registerCommand('graph-mcp.toggleWatch', () => manager.toggleWatch()),
         vscode.commands.registerCommand('graph-mcp.clearCache', () => manager.clearCache()),
         vscode.commands.registerCommand('graph-mcp.showStatus', () =>
             vscode.window.showInformationMessage(`Graph MCP 색인 상태: ${statusBar.text}`)),
@@ -29,11 +32,26 @@ export function activate(context: vscode.ExtensionContext): void {
                 vscode.window.showErrorMessage(`MCP 관리 화면을 열지 못했습니다. 확장 보기의 MCP 서버를 확인하세요. ${error}`);
             }
         }),
+        vscode.commands.registerCommand('graph-mcp.setupAgents', async () => {
+            const scriptPath = path.join(context.extensionPath, 'tools', 'config-graph-mcp.ps1');
+            await new Promise<void>((resolve, reject) => {
+                execFile('powershell.exe', ['-NoLogo', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', scriptPath, '-Action', 'Setup'],
+                    (err) => err ? reject(err) : resolve());
+            });
+            vscode.window.showInformationMessage('Graph MCP: Antigravity · Codex 전역 MCP 서버 및 스킬 등록을 완료했습니다.');
+        }),
         vscode.commands.registerCommand('graph-mcp.quickActions', async () => {
+            const watching = manager.isWatching();
             const selected = await vscode.window.showQuickPick([
                 { label: '$(type-hierarchy) 현재 프로젝트 그래프 생성·갱신', command: 'graph-mcp.buildIndex' },
                 { label: '$(server) MCP 서버 시작·중지', description: 'Lightweight Graph MCP 선택 → 시작 또는 중지', command: 'graph-mcp.manageMcp' },
-                { label: '$(comment-discussion) Llama Agent 열기', command: 'extension.showLlamaWebview' }
+                {
+                    label: watching ? '$(eye-closed) 실시간 감시(Watch) 중지' : '$(eye) 실시간 감시(Watch) 시작',
+                    description: watching ? '현재 감시 중 · 클릭하면 자동 갱신을 중지합니다' : '파일 변경 시 디바운스 후 코드 그래프 자동 갱신 (Graphify Watch)',
+                    command: 'graph-mcp.toggleWatch'
+                },
+                { label: '$(comment-discussion) Llama Agent 열기', command: 'extension.showLlamaWebview' },
+                { label: '$(plug) Antigravity · Codex 전역 MCP/스킬 연결', description: '언제든 바로 쓸 수 있도록 전역 설정 자동 등록', command: 'graph-mcp.setupAgents' }
             ], { placeHolder: 'Graph MCP 빠른 실행' });
             if (!selected) return;
             try {

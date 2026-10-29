@@ -1,5 +1,5 @@
 import { Language, SymbolInfo, SymbolKind } from '../common/types';
-import { nativeDeclaration, nativeScope } from './declarations';
+import { arrowFunctionName, nativeDeclaration, nativeScope } from './declarations';
 
 /** 언어별 AST 선언을 공통 심볼로 추출한다. */
 export class SymbolExtractor {
@@ -38,33 +38,26 @@ export class SymbolExtractor {
                 kind = 'function';
                 name = node.childForFieldName('name')?.text || '';
             } else if (node.type === 'arrow_function') {
-                kind = 'function';
-                // arrow function might be part of variable declarator
-                if (node.parent && node.parent.type === 'variable_declarator') {
-                    name = node.parent.childForFieldName('name')?.text || '';
-                } else if (node.parent && node.parent.type === 'pair') { // object property
-                    name = node.parent.childForFieldName('key')?.text || '';
-                } else {
-                    name = node.childForFieldName('name')?.text || '';
-                }
+                kind = ['public_field_definition', 'field_definition'].includes(node.parent?.type) ? 'method' : 'function';
+                name = arrowFunctionName(node);
             } else if (node.type === 'method_definition') {
                 kind = 'method';
                 name = node.childForFieldName('name')?.text || '';
-            } else if (node.type === 'interface_declaration') {
+            } else if (node.type === 'interface_declaration' || node.type === 'type_alias_declaration') {
                 kind = 'interface';
                 name = node.childForFieldName('name')?.text || '';
             } else if (node.type === 'variable_declarator') {
-                // only variables, not arrow functions (handled above)
+                // 함수·메서드·화살표 함수 콜백 내부의 지역 변수는 제외하고 모듈 최상위 상수·변수만 심볼로 추출한다.
                 const valueNode = node.childForFieldName('value');
-                if (valueNode && valueNode.type !== 'arrow_function') {
+                const rawName = node.childForFieldName('name')?.text || '';
+                if (valueNode && valueNode.type !== 'arrow_function' &&
+                    /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(rawName) &&
+                    !this.isInsideFunctionLike(node)) {
                     kind = 'variable';
-                    name = node.childForFieldName('name')?.text || '';
+                    name = rawName;
                 }
-            } else if (node.type === 'type_alias_declaration') {
-                kind = 'class'; // 'type_alias' -> map to class or interface since our type is restricted. using 'interface' for TS types? let's use 'interface'
-                name = node.childForFieldName('name')?.text || '';
             } else if (node.type === 'enum_declaration') {
-                kind = 'class'; // 'enum' -> map to class
+                kind = 'class';
                 name = node.childForFieldName('name')?.text || '';
             }
         } else if (language === 'python') {
@@ -100,6 +93,25 @@ export class SymbolExtractor {
         return null;
     }
 
+    /** 노드가 함수·메서드·화살표 함수·실행 블록 내부에 위치하는지 판별한다. */
+    private isInsideFunctionLike(node: any): boolean {
+        let current = node.parent;
+        while (current) {
+            if (
+                current.type === 'function_declaration' ||
+                current.type === 'method_definition' ||
+                current.type === 'arrow_function' ||
+                current.type === 'function_expression' ||
+                current.type === 'generator_function_declaration' ||
+                current.type === 'generator_function'
+            ) {
+                return true;
+            }
+            current = current.parent;
+        }
+        return false;
+    }
+
     /** 공통 식별자에 사용할 중첩 범위를 구한다. */
     private getEnclosingScopeName(node: any, language: Language): string {
         if (!['javascript', 'typescript', 'tsx', 'python'].includes(language)) return nativeScope(node, language);
@@ -113,6 +125,8 @@ export class SymbolExtractor {
                     name = current.childForFieldName('name')?.text || '';
                 } else if (current.type === 'function_declaration' || current.type === 'method_definition') {
                     name = current.childForFieldName('name')?.text || '';
+                } else if (current.type === 'arrow_function') {
+                    name = arrowFunctionName(current);
                 }
             } else if (language === 'python') {
                 if (current.type === 'class_definition' || current.type === 'function_definition') {

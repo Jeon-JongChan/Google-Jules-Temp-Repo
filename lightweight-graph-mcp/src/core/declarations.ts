@@ -1,5 +1,16 @@
 import { Language, SymbolKind } from '../common/types';
 
+/** 선언·호출자 추출에 동일한 화살표 함수 이름을 제공한다. */
+export function arrowFunctionName(node: any): string {
+    const parent = node.parent;
+    if (parent?.type === 'variable_declarator') return parent.childForFieldName('name')?.text || '';
+    if (parent?.type === 'pair') return parent.childForFieldName('key')?.text || '';
+    if (parent?.type === 'public_field_definition' || parent?.type === 'field_definition') {
+        return (parent.childForFieldName('name') ?? parent.childForFieldName('property'))?.text || '';
+    }
+    return node.childForFieldName('name')?.text || '';
+}
+
 /** 이름 필드가 없는 C 선언자를 따라 실제 선언 이름을 찾는다. */
 export function declarationName(node: any): string {
     if (!node) return '';
@@ -7,6 +18,7 @@ export function declarationName(node: any): string {
     if (named) return named.text;
     const declarator = node.childForFieldName('declarator');
     if (declarator) return declarationName(declarator);
+    if (node.type === 'reference_declarator') return declarationName(node.namedChildren.at(-1));
     if (['identifier', 'field_identifier', 'type_identifier', 'qualified_identifier', 'destructor_name', 'operator_name'].includes(node.type)) return node.text;
     return '';
 }
@@ -47,7 +59,7 @@ export function nativeScope(node: any, language: Language): string {
     const parts: string[] = [];
     if (language === 'go' && node.type === 'method_declaration') {
         const receiver = node.childForFieldName('receiver')?.namedChild(0)?.childForFieldName('type');
-        if (receiver) parts.push(receiver.text.replace(/^\*/, ''));
+        if (receiver) parts.push(receiver.text.replace(/^\*/, '').replace(/\[.*\]$/, '').trim());
     }
     for (let parent = node.parent; parent; parent = parent.parent) {
         const declaration = nativeDeclaration(parent, language);
@@ -55,10 +67,10 @@ export function nativeScope(node: any, language: Language): string {
             parts.unshift(declaration.name);
             if (language === 'go' && parent.type === 'method_declaration') {
                 const receiver = parent.childForFieldName('receiver')?.namedChild(0)?.childForFieldName('type');
-                if (receiver) parts.unshift(receiver.text.replace(/^\*/, ''));
+                if (receiver) parts.unshift(receiver.text.replace(/^\*/, '').replace(/\[.*\]$/, '').trim());
             }
         }
-        else if (parent.type === 'impl_item') parts.unshift(parent.childForFieldName('type')?.text ?? 'impl');
+        else if (parent.type === 'impl_item') parts.unshift((parent.childForFieldName('type')?.text ?? 'impl').replace(/<.*>$/, '').trim());
     }
     return parts.join('::');
 }

@@ -67,7 +67,7 @@ describe('Graph MCP Tools Tests', () => {
     test('get_index_status logic properly determines NotBuilt vs Ready', () => {
         let currentData: GraphData = { version: '1.0', symbols: {}, relations: {} };
 
-        // When empty
+        // 빈 그래프의 상태를 확인한다.
         let symbolsCount = Object.keys(currentData.symbols).length;
         let status = symbolsCount === 0 ? "NotBuilt" : "Ready";
         expect(status).toBe("NotBuilt");

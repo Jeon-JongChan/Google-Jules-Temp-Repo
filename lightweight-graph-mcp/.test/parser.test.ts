@@ -112,7 +112,8 @@ describe('Graph Core Tests', () => {
             certainty: 'EXTRACTED'
         };
 
-        // Run the resolver
+        // 해석기는 원시 AST 사실에서 시작하므로 fixture도 같은 저장소에 넣는다.
+        graphData.extractedRelations = structuredClone(graphData.relations);
         (index as any).resolveImports();
 
         // Check if the relation targetId has been normalized to include .ts

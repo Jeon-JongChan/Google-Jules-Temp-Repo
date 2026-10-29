@@ -74,6 +74,8 @@ describe('Graph Tools Tests', () => {
         data.symbols['file3.ts::caller3'] = { id: 'file3.ts::caller3', name: 'caller3', kind: 'function', filePath: 'file3.ts', language: 'typescript', range: { start: {line:0, character:0}, end: {line:0, character:0}} };
         data.relations['rel2'] = { id: 'rel2', sourceId: 'file3.ts::caller3', targetId: 'unknown::helper', kind: 'call', certainty: 'EXTRACTED' };
 
+        // 해석된 스냅샷과 원시 사실을 분리하는 현재 데이터 모델을 재현한다.
+        data.extractedRelations = structuredClone(data.relations);
         (index as any).resolveRelations();
 
         // Exact match -> RESOLVED

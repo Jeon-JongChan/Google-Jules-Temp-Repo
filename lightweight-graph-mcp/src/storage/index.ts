@@ -1,11 +1,20 @@
 import * as fs from 'fs';
-import { GraphData } from '../common/types';
+import { GraphData, Relation, SymbolInfo } from '../common/types';
 import { CodeParser } from '../core/parser';
 import { SymbolExtractor } from '../core/symbols';
 import { RelationExtractor } from '../core/relations';
 import { GraphCache } from './cache';
-import languages from '../common/languages.json';
+import { ImportResolver } from '../core/imports';
+import { RelationResolver } from '../core/resolution';
 import * as path from 'path';
+
+/** 파일 내용이 변경되지 않았을 때 Tree-sitter WASM 재파싱을 건너뛰기 위한 프로세스 내 AST 캐시이다. */
+const rawAstCache = new Map<string, {
+    content: string;
+    hasError: boolean;
+    symbols: SymbolInfo[];
+    relations: Relation[];
+}>();
 
 /** AST에서 추출한 프로젝트 심볼과 관계를 관리한다. */
 export class GraphIndex {
@@ -16,11 +25,13 @@ export class GraphIndex {
     private relationExtractor = new RelationExtractor();
     private extensionPath?: string;
     private parseErrorFiles = new Set<string>();
+    private workspaceRoot: string;
 
     /** 프로젝트 캐시와 파서의 자산 경로를 설정한다. */
     constructor(workspaceRoot: string, extensionPath?: string) {
+        this.workspaceRoot = workspaceRoot;
         this.cache = new GraphCache(workspaceRoot);
-        this.data = { version: '1.0', symbols: {}, relations: {} };
+        this.data = { version: '1.0', symbols: {}, relations: {}, extractedRelations: {} };
         this.extensionPath = extensionPath;
     }
 
@@ -30,6 +41,21 @@ export class GraphIndex {
         const loaded = loadCache ? await this.cache.load() : null;
         if (loaded) {
             this.data = loaded;
+            if (!loaded.extractedRelations) {
+                // 이전 캐시의 해석 결과를 원시 사실로 오인하지 않고 프로젝트 내부 소스에서 복원한다.
+                const files = new Set([...Object.values(loaded.symbols).map(symbol => symbol.filePath),
+                    ...Object.values(loaded.relations).map(relation => relation.sourceId.split('::')[0])]);
+                this.data = { version: '1.0', symbols: {}, relations: {}, extractedRelations: {} };
+                const realRoot = fs.realpathSync(this.workspaceRoot);
+                for (const file of files) {
+                    const relative = path.relative(realRoot, path.resolve(file));
+                    if (relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative) || !fs.existsSync(file)) continue;
+                    const realRelative = path.relative(realRoot, fs.realpathSync(file));
+                    if (realRelative === '..' || realRelative.startsWith(`..${path.sep}`) || path.isAbsolute(realRelative)) continue;
+                    await this.updateFile(file, true);
+                }
+                this.resolveRelations();
+            }
         }
     }
 
@@ -40,6 +66,24 @@ export class GraphIndex {
 
         try {
             const content = fs.readFileSync(filePath, 'utf-8');
+            const cached = rawAstCache.get(filePath);
+            if (cached && cached.content === content) {
+                this.removeFileEntries(filePath);
+                if (cached.hasError) this.parseErrorFiles.add(filePath);
+                for (const sym of cached.symbols) {
+                    this.data.symbols[sym.id] = { ...sym };
+                }
+                for (const rel of cached.relations) {
+                    this.data.relations[rel.id] = { ...rel };
+                    this.data.extractedRelations![rel.id] = { ...rel };
+                }
+                if (!skipSave) {
+                    this.resolveRelations();
+                    await this.cache.save(this.data);
+                }
+                return;
+            }
+
             let tree = this.parser.parse(content, language);
             // .h는 C와 C++가 공유하므로 C 문법에서 오류가 날 때 C++도 확인한다.
             if (tree?.rootNode.hasError && path.extname(filePath) === '.h') {
@@ -49,7 +93,7 @@ export class GraphIndex {
                     tree = cppTree;
                 } else { cppTree?.delete(); }
             }
-            if (tree?.rootNode.hasError) this.parseErrorFiles.add(filePath);
+            const hasError = Boolean(tree?.rootNode.hasError);
 
             if (tree) {
                 try {
@@ -65,18 +109,26 @@ export class GraphIndex {
                             } finally { cppTree.delete(); }
                         }
                     }
+                    if (rawAstCache.size > 2000) rawAstCache.clear();
+                    rawAstCache.set(filePath, {
+                        content,
+                        hasError,
+                        symbols: symbols.map(s => ({ ...s })),
+                        relations: relations.map(r => ({ ...r }))
+                    });
                     this.removeFileEntries(filePath);
+                    if (hasError) this.parseErrorFiles.add(filePath);
 
                     // 키가 같은 중복 선언은 하나로 합친다.
                     for (const sym of symbols) {
                         this.data.symbols[sym.id] = sym;
                     }
                     for (const rel of relations) {
-                        this.data.relations[rel.id] = rel;
+                        this.data.relations[rel.id] = { ...rel };
+                        this.data.extractedRelations![rel.id] = { ...rel };
                     }
 
                     if (!skipSave) {
-                        this.resolveImports();
                         this.resolveRelations();
                         await this.cache.save(this.data);
                     }
@@ -99,11 +151,13 @@ export class GraphIndex {
     /** 파일의 심볼과 관계를 제거한 스냅샷을 저장한다. */
     public async removeFile(filePath: string): Promise<void> {
         this.removeFileEntries(filePath);
+        this.resolveRelations();
         await this.cache.save(this.data);
     }
 
     /** 메모리에서 특정 파일에 속한 항목을 제거한다. */
     private removeFileEntries(filePath: string) {
+        this.parseErrorFiles.delete(filePath);
         for (const id in this.data.symbols) {
             if (this.data.symbols[id].filePath === filePath) {
                 delete this.data.symbols[id];
@@ -116,74 +170,25 @@ export class GraphIndex {
                 delete this.data.relations[id];
             }
         }
-    }
-
-    /** 상대 임포트 경로를 이미 색인된 파일에 연결한다. */
-    public resolveImports() {
-        // 파일 경로는 지원 언어의 모든 심볼에서 수집한다.
-        const knownFiles = new Set<string>();
-        for (const symId in this.data.symbols) {
-            knownFiles.add(this.data.symbols[symId].filePath);
-        }
-
-        const exts = Object.values(languages).flatMap(config => config.extensions);
-
-        for (const id in this.data.relations) {
-            const rel = this.data.relations[id];
-            if (rel.kind === 'import' && !knownFiles.has(rel.targetId)) {
-                // 확장자를 생략한 상대 경로와 index 파일을 확인한다.
-                let resolvedTargetId: string | null = null;
-
-                for (const ext of exts) {
-                    if (knownFiles.has(rel.targetId + ext)) {
-                        resolvedTargetId = rel.targetId + ext;
-                        break;
-                    }
-                    if (knownFiles.has(path.join(rel.targetId, 'index' + ext))) {
-                        resolvedTargetId = path.join(rel.targetId, 'index' + ext);
-                        break;
-                    }
-                }
-
-                if (resolvedTargetId) {
-                    rel.targetId = resolvedTargetId;
-                    rel.certainty = 'RESOLVED';
-
-                    // 해석된 경로와 관계 ID를 일치시킨다.
-                    const oldId = rel.id;
-                    const newId = `${rel.sourceId}::import::${resolvedTargetId}`;
-                    if (oldId !== newId) {
-                        rel.id = newId;
-                        this.data.relations[newId] = rel;
-                        delete this.data.relations[oldId];
-                    }
-                }
+        for (const [id, relation] of Object.entries(this.data.extractedRelations || {})) {
+            if (relation.sourceId === filePath || relation.sourceId.startsWith(`${filePath}::`)) {
+                delete this.data.extractedRelations![id];
             }
         }
     }
 
-    /** 같은 언어의 유일한 후보만 연결하고 모호한 대상은 미해결로 남긴다. */
-    public resolveRelations() {
-        for (const id in this.data.relations) {
-            const rel = this.data.relations[id];
-            if (['call', 'inherit', 'implement'].includes(rel.kind) && rel.targetId.startsWith('unknown::')) {
-                const funcName = rel.targetId.split('::')[1];
-                const sourceFilePath = rel.sourceId.split('::')[0];
-                const sourceLanguage = CodeParser.getLanguageFromFile(sourceFilePath);
-                const matches = Object.values(this.data.symbols).filter(symbol => symbol.name === funcName &&
-                    symbol.language === sourceLanguage);
-                const local = matches.filter(symbol => symbol.filePath === sourceFilePath);
-                if (local.length === 1) {
-                    rel.targetId = local[0].id;
-                    rel.certainty = 'RESOLVED';
-                } else if (!local.length && matches.length === 1) {
-                    rel.targetId = matches[0].id;
-                    rel.certainty = 'INFERRED';
-                } else {
-                    rel.certainty = 'UNRESOLVED';
-                }
-            }
+    /** 원시 사실에서 다시 시작하여 임포트 어댑터로 파일 대상을 연결한다. */
+    public resolveImports(): void {
+        if (this.data.extractedRelations) {
+            this.data.relations = Object.fromEntries(Object.entries(this.data.extractedRelations).map(([id, relation]) => [id, { ...relation }]));
         }
+        new ImportResolver(this.data, this.workspaceRoot).resolve();
+    }
+
+    /** 공유 전략 체인으로 현재 심볼의 관계를 해석한다. */
+    public resolveRelations(): void {
+        this.resolveImports();
+        new RelationResolver(this.data).resolve();
     }
 
     /** 현재 메모리의 그래프를 반환한다. */
@@ -198,7 +203,8 @@ export class GraphIndex {
 
     /** 캐시를 빈 그래프로 초기화한다. */
     public async clear(): Promise<void> {
-        this.data = { version: '1.0', symbols: {}, relations: {} };
+        this.data = { version: '1.0', symbols: {}, relations: {}, extractedRelations: {} };
+        this.parseErrorFiles.clear();
         await this.cache.clear();
     }
 

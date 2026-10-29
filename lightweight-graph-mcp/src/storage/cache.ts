@@ -1,6 +1,20 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { GraphData } from '../common/types';
+import { GraphData, Relation } from '../common/types';
+
+/** 해석 결과와 원시 관계에 동일한 캐시 입력 검증을 적용한다. */
+function isRelationRecord(value: unknown): value is Record<string, Relation> {
+    return Boolean(value && typeof value === 'object' && !Array.isArray(value) &&
+        Object.entries(value).every(([id, relation]) => relation && relation.id === id &&
+            typeof relation.sourceId === 'string' && typeof relation.targetId === 'string' &&
+            (relation.receiver === undefined || typeof relation.receiver === 'string') &&
+            (relation.bindingScope === undefined || typeof relation.bindingScope === 'string') &&
+            (relation.lexicalBinding === undefined || typeof relation.lexicalBinding === 'string') &&
+            (relation.bindings === undefined || (relation.bindings && typeof relation.bindings === 'object' && !Array.isArray(relation.bindings) &&
+                Object.values(relation.bindings).every(name => typeof name === 'string'))) &&
+            ['call', 'import', 'inherit', 'implement', 'reference'].includes(relation.kind) &&
+            ['EXTRACTED', 'RESOLVED', 'INFERRED', 'UNRESOLVED'].includes(relation.certainty)));
+}
 
 /** 프로젝트 그래프를 공통 경로에 저장하고 이전 캐시를 읽는다. */
 export class GraphCache {
@@ -35,11 +49,10 @@ export class GraphCache {
                 const data = JSON.parse(content) as GraphData;
                 if (data && data.version === '1.0' && data.symbols && data.relations &&
                     typeof data.symbols === 'object' && !Array.isArray(data.symbols) &&
-                    typeof data.relations === 'object' && !Array.isArray(data.relations) &&
+                    isRelationRecord(data.relations) &&
+                    (data.extractedRelations === undefined || isRelationRecord(data.extractedRelations)) &&
                     Object.values(data.symbols).every(symbol => symbol && typeof symbol.id === 'string' &&
-                        typeof symbol.name === 'string' && typeof symbol.filePath === 'string') &&
-                    Object.values(data.relations).every(relation => relation && typeof relation.id === 'string' &&
-                        typeof relation.sourceId === 'string' && typeof relation.targetId === 'string')) {
+                        typeof symbol.name === 'string' && typeof symbol.filePath === 'string')) {
                     return data;
                 } else {
                     console.error('Graph MCP: 캐시 형식이 올바르지 않습니다. 다시 생성하세요.');
