@@ -52,4 +52,3 @@ C:\Users\user\Documents\projects\Google-Jules-Temp-Repo\lightweight-graph-mcp\gr
 1. 대상 프로젝트에 대해 먼저 `get_index_status`(또는 `graph-mcp.cmd status "<경로>"`)를 확인하고, `NotBuilt`이거나 최근 코드 변경이 있으면 `build_index`를 실행한다.
 2. 전체 아키텍처 파악 시 `get_project_overview`, `get_god_nodes`, `get_communities` 또는 `.tools/.graphify/GRAPH_REPORT.md`를 먼저 읽는다.
 3. 특정 기능 흐름이나 수정 범위를 분석할 때는 `query_graph`, `shortest_path`, `get_impact`로 연관 심볼과 파일 위치를 좁힌 뒤 해당 파일만 읽는다.
-

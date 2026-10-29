@@ -65,7 +65,7 @@ export class GraphIndex {
         if (!language) return;
 
         try {
-            const content = fs.readFileSync(filePath, 'utf-8');
+            const content = await fs.promises.readFile(filePath, 'utf-8');
             const cached = rawAstCache.get(filePath);
             if (cached && cached.content === content) {
                 this.removeFileEntries(filePath);

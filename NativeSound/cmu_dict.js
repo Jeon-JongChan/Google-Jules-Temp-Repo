@@ -24,5 +24,15 @@ const CMUDict = {
     "YOU": "Y UW1",
     "DOING": "D UW1 IH0 NG",
     "GOOD": "G UH1 D",
-    "MORNING": "M AO1 R N IH0 NG"
+    "MORNING": "M AO1 R N IH0 NG",
+    "SYSTEM": "S IH1 S T AH0 M",
+    "THOUGHT": "TH AO1 T",
+    "THROUGH": "TH R UW1",
+    "TEST": "T EH1 S T",
+    "BETTER": "B EH1 T ER0",
+    "ALWAYS": "AO1 L W EY2 Z",
+    "ABOUT": "AH0 B AW1 T",
+    "PEOPLE": "P IY1 P AH0 L",
+    "AGAIN": "AH0 G EH1 N",
+    "SHOULD": "SH UH1 D"
 };

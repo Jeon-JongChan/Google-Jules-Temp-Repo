@@ -42,24 +42,27 @@ export class GraphCache {
 
     /** 새 캐시가 없을 때만 이전 경로를 읽고 잘못된 구조를 거부한다. */
     public async load(): Promise<GraphData | null> {
-        const readPath = fs.existsSync(this.cachePath) ? this.cachePath : this.legacyPath;
         try {
-            if (fs.existsSync(readPath)) {
-                const content = fs.readFileSync(readPath, 'utf-8');
-                const data = JSON.parse(content) as GraphData;
-                if (data && data.version === '1.0' && data.symbols && data.relations &&
-                    typeof data.symbols === 'object' && !Array.isArray(data.symbols) &&
-                    isRelationRecord(data.relations) &&
-                    (data.extractedRelations === undefined || isRelationRecord(data.extractedRelations)) &&
-                    Object.values(data.symbols).every(symbol => symbol && typeof symbol.id === 'string' &&
-                        typeof symbol.name === 'string' && typeof symbol.filePath === 'string')) {
-                    return data;
-                } else {
-                    console.error('Graph MCP: 캐시 형식이 올바르지 않습니다. 다시 생성하세요.');
-                }
+            let content: string;
+            try {
+                content = await fs.promises.readFile(this.cachePath, 'utf-8');
+            } catch (error) {
+                if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+                content = await fs.promises.readFile(this.legacyPath, 'utf-8');
+            }
+            const data = JSON.parse(content) as GraphData;
+            if (data && data.version === '1.0' && data.symbols && data.relations &&
+                typeof data.symbols === 'object' && !Array.isArray(data.symbols) &&
+                isRelationRecord(data.relations) &&
+                (data.extractedRelations === undefined || isRelationRecord(data.extractedRelations)) &&
+                Object.values(data.symbols).every(symbol => symbol && typeof symbol.id === 'string' &&
+                    typeof symbol.name === 'string' && typeof symbol.filePath === 'string')) {
+                return data;
+            } else {
+                console.error('Graph MCP: 캐시 형식이 올바르지 않습니다. 다시 생성하세요.');
             }
         } catch (error) {
-            console.error('Graph MCP: 캐시를 읽지 못했습니다.', error);
+            if ((error as NodeJS.ErrnoException).code !== 'ENOENT') console.error('Graph MCP: 캐시를 읽지 못했습니다.', error);
         }
         return null;
     }

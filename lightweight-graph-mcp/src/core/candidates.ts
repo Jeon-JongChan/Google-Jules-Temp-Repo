@@ -61,4 +61,3 @@ export function disambiguateCandidates(candidates: SymbolInfo[], callSiteFile: s
     }
     return null;
 }
-

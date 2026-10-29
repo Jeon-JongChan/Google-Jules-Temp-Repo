@@ -16,16 +16,19 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - uses: android-actions/setup-android@v3
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.11.1'
       - name: Install Android SDK
-        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+        run: |
+          export PATH="${ANDROID_HOME:-/usr/local/lib/android/sdk}/cmdline-tools/latest/bin:$PATH"
+          yes | sdkmanager --licenses
+          sdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'platforms;android-36'
       - name: Assemble APK
+        working-directory: 'Google AI Visual Studio'
         run: gradle :app:assembleDebug --stacktrace
       - uses: actions/upload-artifact@v4
         if: success()
         with:
           name: AIStudio-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: 'Google AI Visual Studio/app/build/outputs/apk/debug/app-debug.apk'
