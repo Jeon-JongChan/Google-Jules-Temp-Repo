@@ -87,13 +87,23 @@ function main() {
             const ratios = lw.samples.map((value, index) => Math.min(engines['graphify-sequential'][phase].samples[index], engines['graphify-parallel4'][phase].samples[index]) / value);
             comparisons[workload][phase] = { lightweightMs: lw.medianMs, graphifyMs: gf.medianMs, bestGraphify: best,
                 speedup: gf.medianMs / lw.medianMs, pairedRatiosAgainstFasterGraphify: ratios,
-                decision: ratios.every(ratio => ratio > 1.1) ? '모든 블록에서 lightweight 10% 이상 빠름' : ratios.every(ratio => ratio >= 0.9 && ratio <= 1.1) ? '모든 블록에서 ±10% 범위' : '조건별 우열 혼재' };
+                decision: ratios.every(ratio => ratio > 1.1) ? '모든 블록에서 lightweight 10% 이상 빠름' : ratios.every(ratio => ratio >= 0.9 && ratio <= 1.1) ? '모든 블록에서 ±10% 범위' : '10% 우세·±10% 동등 기준 미충족' };
         }
     }
     const project = path.resolve(__dirname, '..');
     const sourceHashes = Object.fromEntries(fs.readdirSync(path.join(project, 'src'), { recursive: true }).filter(file => /\.(ts|json)$/.test(file))
         .map(file => [file, crypto.createHash('sha256').update(fs.readFileSync(path.join(project, 'src', file))).digest('hex')]));
-    const environment = { ...result.environment, sourceHashes };
+    const environment = { ...result.environment, sourceHashes, typescriptVersion: require('typescript/package.json').version };
+    if (process.argv.includes('--verify-current')) {
+        const directory = fs.mkdtempSync(path.join(root, 'runtime-verify-'));
+        execFileSync(process.execPath, [path.join(project, 'node_modules/typescript/bin/tsc'), '--project', path.join(project, 'tsconfig.json'), '--outDir', directory, '--sourceMap', 'false'],
+            { cwd: project, stdio: 'pipe', timeout: 30000 });
+        const files = fs.readdirSync(path.join(root, 'runtime'), { recursive: true }).filter(file => /\.(js|json)$/.test(file));
+        assert.deepEqual([...files].sort(), fs.readdirSync(directory, { recursive: true }).filter(file => /\.(js|json)$/.test(file)).sort(), '컴파일 파일 집합 차이');
+        for (const file of files) assert(fs.readFileSync(path.join(root, 'runtime', file)).equals(fs.readFileSync(path.join(directory, file))),
+            `측정 런타임과 최종 소스의 컴파일 결과 차이: ${file}`);
+        environment.currentRuntimeVerifiedFiles = files.length;
+    }
     if (process.argv[3]) {
         const script = "import sys,json,hashlib,inspect,importlib.metadata as m;import graphify.extract as e;import graphify.symbol_resolution as s;print(json.dumps({'python':sys.version,'packages':{d.metadata['Name']:d.version for d in m.distributions() if d.metadata['Name'].lower().startswith(('graphify','tree-sitter'))},'sourceHashes':{inspect.getfile(x):hashlib.sha256(open(inspect.getfile(x),'rb').read()).hexdigest() for x in [e,s]}}))";
         environment.graphify = JSON.parse(execFileSync(process.argv[3], ['-c', script], { encoding: 'utf8', env: { ...process.env, PYTHONDONTWRITEBYTECODE: '1' }, timeout: 30000 }));
