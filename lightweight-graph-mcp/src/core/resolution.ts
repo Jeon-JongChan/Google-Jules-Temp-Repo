@@ -1,7 +1,8 @@
 import { GraphData, Language, Relation, RelationCertainty, SymbolInfo } from '../common/types';
 import { CodeParser } from './parser';
-import { BUILTIN_CALL_NAMES } from './relations';
+import { BUILTIN_CALL_NAMES } from './declarations';
 import { disambiguateCandidates } from './candidates';
+import { getLanguageAnalyzer } from './analyzers';
 
 /** 한 규칙이 확정한 대상과 근거 수준이다. */
 interface ResolutionMatch {
@@ -32,7 +33,7 @@ interface ResolutionRule {
 
 /** JS·TS·TSX의 교차 임포트를 같은 문법 계열로 취급한다. */
 function languageFamily(language: Language | null): string {
-    return language && ['javascript', 'typescript', 'tsx'].includes(language) ? 'script' : language || '';
+    return language ? getLanguageAnalyzer(language).family : '';
 }
 
 /** 전역·임포트로 접근 가능한 최상위 심볼인지 확인한다. */
@@ -215,7 +216,7 @@ export class RelationResolver {
                 importedFiles: this.importedByFile.get(sourceFile) || new Set<string>(), ancestors: this.ancestors,
                 receiverTypes,
                 // Java·C#·C++ 계열의 멤버 본문은 수신자 없이 같은 클래스의 메서드를 호출할 수 있다.
-                implicitThis: Boolean(sourceLanguage && ['java', 'csharp', 'cpp', 'objcpp', 'objc', 'cuda'].includes(sourceLanguage))
+                implicitThis: Boolean(sourceLanguage && getLanguageAnalyzer(sourceLanguage).implicitThis)
             };
             let found: ResolutionMatch | null = null;
             for (const rule of RESOLUTION_RULES) {

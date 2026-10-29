@@ -1,18 +1,13 @@
 import { CodeParser } from '../src/core/parser';
-import { SymbolExtractor } from '../src/core/symbols';
-import { RelationExtractor } from '../src/core/relations';
+import { getLanguageAnalyzer } from '../src/core/analyzers';
 import { GraphIndex } from '../src/storage/index';
 
 describe('Graph Core Tests', () => {
     let parser: CodeParser;
-    let symbolExtractor: SymbolExtractor;
-    let relationExtractor: RelationExtractor;
 
     beforeAll(async () => {
         parser = new CodeParser();
         await parser.initialize();
-        symbolExtractor = new SymbolExtractor();
-        relationExtractor = new RelationExtractor();
     });
 
     test('extracts symbols and relations from TS code', () => {
@@ -31,7 +26,7 @@ describe('Graph Core Tests', () => {
         const tree = parser.parse(code, 'typescript');
         expect(tree).toBeDefined();
 
-        const symbols = symbolExtractor.extractSymbols(tree, 'test.ts', 'typescript');
+        const symbols = getLanguageAnalyzer('typescript').extractSymbols(tree, 'test.ts');
         expect(symbols.length).toBeGreaterThan(0);
 
         const classSym = symbols.find(s => s.name === 'MyClass' && s.kind === 'class');
@@ -45,7 +40,7 @@ describe('Graph Core Tests', () => {
         const arrowSym = symbols.find(s => s.name === 'myVar' && s.kind === 'function');
         expect(arrowSym).toBeDefined();
 
-        const relations = relationExtractor.extractRelations(tree, 'test.ts', 'typescript');
+        const relations = getLanguageAnalyzer('typescript').extractRelations(tree, 'test.ts');
         expect(relations.length).toBeGreaterThan(0);
 
         const importRel = relations.find(r => r.kind === 'import');
@@ -73,7 +68,7 @@ describe('Graph Core Tests', () => {
         const tree = parser.parse(code, 'typescript');
         expect(tree).toBeDefined();
 
-        const relations = relationExtractor.extractRelations(tree, 'test2.ts', 'typescript');
+        const relations = getLanguageAnalyzer('typescript').extractRelations(tree, 'test2.ts');
         const callsToHelper = relations.filter(r => r.kind === 'call' && r.targetId.includes('helper'));
 
         expect(callsToHelper.length).toBe(2);
@@ -140,7 +135,7 @@ describe('Graph Core Tests', () => {
         const tree = parser.parse(code, 'typescript');
         expect(tree).toBeDefined();
 
-        const relations = relationExtractor.extractRelations(tree, 'test_relations.ts', 'typescript');
+        const relations = getLanguageAnalyzer('typescript').extractRelations(tree, 'test_relations.ts');
 
         // 1. require() should be extracted as import
         const requireRel = relations.find(r => r.kind === 'import' && r.targetId.includes('myModule'));
@@ -170,7 +165,7 @@ def py_func():
         const pyTree = parser.parse(pyCode, 'python');
         expect(pyTree).toBeDefined();
 
-        const symbols = symbolExtractor.extractSymbols(pyTree, 'test.py', 'python');
+        const symbols = getLanguageAnalyzer('python').extractSymbols(pyTree, 'test.py');
         expect(symbols.length).toBeGreaterThan(0);
 
         const pyClass = symbols.find(s => s.name === 'PythonClass' && s.kind === 'class');

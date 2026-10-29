@@ -1,5 +1,180 @@
 # Graph MCP와 llama.vscode 연결·Graphify 비교 및 구현 보고서
 
+## 2026-10-29 언어별 실제 분석 책임 분리와 불필요한 파일 정리
+
+### 원인과 수정
+
+사용자가 `python.ts`가 `new AstLanguageAnalyzer('python')`만 반환하는 점을 지적했다. 이전 단계는 생성·선택 경계를 분리했지만 실제 언어 분기가 `symbols.ts`, `relations.ts`, `declarations.ts`에 남아 있어 신규 언어의 독립 구현이라는 설명에 부족했다. 이번에는 언어별 AST 규칙을 실제 전략으로 옮기고 공통 계층의 언어 선택 분기를 제거했다. 아래 이전 절은 그 전 단계의 검토 이력이며 **현재 구조는 이 절과 최신 README 9절을 기준으로 한다.**
+
+| 책임 | 현재 소유 위치 |
+| --- | --- |
+| 파사드·생성 함수 등록·분석기 재사용 | `src/core/analyzers.ts` 한 파일 |
+| 공통 순회·심볼 ID/위치 조립·2단계 수신자/관계 수집·AST 해제 | `language/base.ts`의 추상 `AstLanguageAnalyzer` |
+| 네이티브 호출/상속 조립의 공통 부분 | 같은 파일의 추상 `NativeLanguageAnalyzer` |
+| Python 선언·범위·수신자·별칭·호출·상속·상대 모듈 후보 | `language/python.ts`의 `PythonAnalyzer` |
+| JS 런타임 구문·객체/필드·함수 범위·모듈 바인딩 | `language/javascript.ts`의 `JavascriptAnalyzer` |
+| TS 선언·타입 참조·인터페이스 범위 | `language/typescript.ts`의 `TypescriptAnalyzer`; TSX는 이 전략을 재사용 |
+| Go receiver 범위, Rust impl 범위 | 각각 `language/go.ts`, `language/rust.ts` |
+| Java/C# 선언 표·임포트 AST | 각각 `language/java.ts`, `language/csharp.ts` |
+| C 선언자/include/.h 대체, C++ 정책, Objective-C selector, Objective-C++ 병합 | 각각 해당 언어 파일; CUDA는 기존 부분 지원의 C++ 규칙 재사용 |
+| 공유 이름/타입 정리·수신자 조회·범위 변환·방문 순회 | `core/declarations.ts`; 언어 선택 분기 없음 |
+| 모듈 후보를 실제 파일에 연결 | `ImportResolver`; Python/JS 후보 정책은 전략으로 이동 |
+
+새 언어는 `getDeclaration`, `extractNodeRelations`를 구현해야 한다. 필요 시 범위·수신자 증거·모듈 후보·문법 선택을 재정의한다. 공통 `AstLanguageAnalyzer`를 그대로 생성하는 래퍼는 만들 수 없도록 추상 클래스로 변경했다. 네이티브 언어는 공통 조립기를 재사용하면서 자기 선언 표와 임포트 구문을 공급한다. TypeScript/TSX, C++/CUDA처럼 실제 공통 구문은 공유해 복사 구현을 피했다.
+
+기존 Watch의 `onRebuildStart/Done/Error` 콜백은 Observer 역할로 재사용하고, `RelationResolver.RESOLUTION_RULES`의 책임연쇄도 유지했다. AST 방문 콜백은 Visitor 방식이며 Observer로 혼동해 설명하지 않는다. 별도 이벤트 버스나 새 규칙 로더는 추가하지 않았다. 프록시는 현재 해결할 경계 문제가 없어 추가하지 않았다.
+
+```mermaid
+flowchart LR
+    W[Watch] --> F[GraphIndex]
+    W -->|기존 알림 콜백| U[UI와 CLI]
+    F --> A[analyzers.ts 파사드·팩토리]
+    A --> L[언어별 실제 전략]
+    L --> B[공통 순회·결과 조립·AST 해제]
+    B --> R[전략의 선언·범위·관계 규칙]
+    R --> G[원시 사실]
+    G --> I[ImportResolver]
+    L -->|모듈 후보 정책| I
+    I --> C[기존 호출 해석 책임연쇄]
+    C --> S[저장·조회]
+```
+
+### 정리 범위와 검증
+
+- 사용자에게 제거 대상과 이유를 알리고, 불필요한 코드·파일을 정리하라는 후속 지시에 따라 `core/symbols.ts`, `core/relations.ts`, `core/language/factory.ts`를 제거했다. 기존 심볼·관계 추출 호출자는 실제 전략의 `extractSymbols`/`extractRelations`로 바꾸고 내장 이름 상수 참조도 갱신했다. 직전 구조 대비 제품 소스 파일이 **3개 감소**했다.
+- 이번 이동에만 사용한 `.test/capture-language-baseline.cjs`, `.test/restructure-language.cjs`도 실행 후 제거했다. 고정 회귀 기준 `.test/language-baseline.json`, 검사 스크립트, 기존 작업 내용과 검토 증거는 보존했다.
+- `.test/language-analyzers.cjs`는 변경 전에 저장한 13개 언어의 **전체 원시 사실 JSON**과 현재 결과를 비교한다. 삭제한 클래스의 새 래퍼와 다시 비교하는 순환 검증은 제거했다. 팩토리 재사용·독립 훅·부분 문법·실패 시 AST 해제 검사도 유지한다.
+- 타입 검사, 소스 전체 ESLint, 13개 언어 기준 결과 동일성, Jest 14개, 언어/Watch/실패 보존 통합 검사, 증분·캐시·Graphify 후보 및 Python 상대 임포트 비교, production 번들, 실제 stdio MCP/CLI/다중 프로젝트 검사가 통과했다.
+- 최종 정확도 비교는 `.test/accuracy-T2O3mR/result.json`: 기존 26개 반례에서 lightweight 지정 호출 16/16·오연결 0, Graphify 10/16·오연결 6을 유지했다. `.test/audit-20261029-6Tngk1/result.json`에서는 기존 버그 7건이 여전히 재현된다. 구조 이동으로 그 버그들이 해결됐다고 주장하지 않는다.
+- 현재 버그 대응 위치는 함수 표현식/제너레이터의 경우 `JavascriptAnalyzer`, Python 메서드 분류는 `PythonAnalyzer`, 오버로드 ID는 공통 심볼 조립과 저장 계층이다. 나머지 임포트/조회 문제는 기존 해석기와 `GraphTools`에 남아 있다.
+- 성능 측정은 사용자의 보류 요청을 유지했다. 이번 책임 분리 작업에서는 성능 측정을 실행하지 않았다. 문법 등록만으로 동적 디스패치나 새 언어의 전체 의미 분석까지 완성되는 것은 아니다.
+
+## 2026-10-29 재검토 및 신규 언어 분석 전략 적용
+
+### 판정과 비교 기준
+
+**Graphify 전체와 동일하게 구현됐거나 모든 입력에서 더 정확하다는 판정은 불가하다.** 기존 26개 회귀 반례에서는 lightweight가 우세하지만 새 반례에서는 Graphify만 처리하는 구문도 확인했다. 기능 범위와 군집화 알고리즘도 다르다. 이후 사용자가 요청한 신규 언어 확장 구조는 이번에 실제 코드에 적용했다. 아래 버그는 검토 결과이며 이 구조 변경으로 수정됐다는 뜻이 아니다.
+
+- 로컬 제품 기준: `lightweight-graph-mcp 1.1.0`, 검토 시작 시 `src`의 마지막 커밋 `3290df3b8e9856755a73e6fa869887274dac65fb`. 기존 보고서와 `skill/SKILL.md`에 있던 미커밋 변경은 보존했다.
+- 원본 기준: 공식 [저장소 정보](https://api.github.com/repos/Graphify-Labs/graphify)에서 현재 기본 브랜치가 `v8`임을 확인했다. [v8 패키지 정의](https://github.com/Graphify-Labs/graphify/blob/v8/pyproject.toml)의 버전과 로컬 비교 환경은 모두 `graphifyy 0.9.97`이다. 오래된 `main` 브랜치와 비교하지 않았다. 버전 번호가 같다는 사실만으로 설치 소스와 원격 커밋 전체가 동일하다고 주장하지 않는다.
+- 실제 비교 Python: `D:/Projects/.tools/Graphify/portable/graphify/tools/graphifyy/Scripts/python.exe`. 외부 API나 LLM 없이 AST 추출·교차 파일 해석을 실행했다.
+- 소스 검토 범위: 문법 설정·파서·선언/관계 추출·임포트/호출 해석·캐시·전체 생성/Watch·내보내기·MCP 조회·CLI·기존 검사와 번들 설정. 생성 그래프는 프로젝트 `.tools/.graphify/`에만 저장했다.
+
+### 기능 동등성과 정확도
+
+| 항목 | 판정 | 근거와 한계 |
+| --- | --- | --- |
+| 로컬 AST 기반 선언·호출·임포트·상속 추출 | 핵심 목적은 유사, 완전 동등 아님 | 공통 지원 언어에서도 AST 구문·수신자·스코프 처리 범위가 다름 |
+| 언어·입력 범위 | Graphify가 넓음 | lightweight는 13개 언어·방언과 코드 중심, 원본은 더 많은 언어 및 문서·SQL 등도 취급 |
+| 커뮤니티 | 다른 구현 | 자체 8회 라벨 전파와 Graphify의 Leiden/Louvain은 결과와 목적함수가 다름 |
+| 그래프 JSON | 일부 필드 공유 | 자체 ID·스키마이며 Graphify 전체 CLI 호환을 검증하지 않음 |
+| 지정 회귀 반례의 호출 해석 | lightweight 우세 | 26개 반례의 지정 호출 16/16, 오연결 0; Graphify 10/16, 오연결 6 |
+| 전체 프로젝트·전체 언어 정확도 | 우세 입증 안 됨 | 실제 소스에서 콜백 연결 누락이 있고, 새 반례에서도 누락 확인 |
+
+원본의 [입력 처리 설명](https://github.com/Graphify-Labs/graphify/blob/v8/docs/how-it-works.md)과 [군집화 구현](https://github.com/Graphify-Labs/graphify/blob/v8/graphify/cluster.py)을 확인했다. 원본 문서끼리 언어 수 표현이 달라 고정 숫자의 단순 비교는 하지 않는다. 신뢰도 `0.95` 등의 규칙 가중치는 실측 정확도나 확률이 아니다.
+
+변경 전 재실행 결과는 `.test/accuracy-W0vMHZ/result.json`, 최종 파사드·팩토리·언어별 파일 분리 후 결과는 `.test/accuracy-B6MJ3a/result.json`이다. 두 번 모두 lightweight의 지정 호출 16/16·오연결 0, Graphify 10/16·오연결 6이었다. 같은 반례에 맞춰 개선한 회귀 검사이므로 무작위 표집 정확도로 확대하면 안 된다.
+
+변경 전 실제 `src` 복사본의 재비교는 `.test/review-y2QTHn/project-result.json`에 있다. Graphify 의미 관계 219개, lightweight 290개, 공통 216개로 이전 기록과 일치한다. 관계 수가 많다는 이유로 정확도가 높다고 판정하지 않는다. 원본에만 있는 `ancestors` 콜백 연결 2건은 여전히 추적 한계다.
+
+### 직접 재현한 버그 및 정확도 제한
+
+재현 스크립트는 `lightweight-graph-mcp/.test/audit-20261029.cjs`, 최종 증거는 `.test/audit-20261029-0tNQob/result.json`이다. 모두 구문 오류 0인 입력이다. 스크립트의 성공은 **알려진 문제 7건의 재현 성공**을 뜻하며 제품 정상 판정이 아니다. 각 fixture의 Graphify 노드·관계도 같이 보존했다.
+
+| 우선순위 | 위치·증상 | 원인 | 권장 수정 |
+| --- | --- | --- | --- |
+| P1 | `core/symbols.ts:29`, `core/relations.ts`의 범위 계산: `const entry = function(){ helper(); }`가 함수 대신 변수, `function* stream()`은 선언 누락; 두 내부 호출도 `global`에 묶임 | `function_expression`·`generator_function_declaration`을 선언·범위 계산에서 다루지 않음 | JS/TS 전략에서 함수 표현식·제너레이터의 이름과 범위를 함께 추출하고 직접 호출의 callable 후보에도 연결 |
+| P1 | `core/imports.ts:21`: `tsconfig.json`의 `extends`에서 정의한 `paths` 별칭 미해석 | 루트 설정의 `compilerOptions`만 읽음 | 순환을 방지하며 `extends`를 따라가고 설정 파일별 상대 경로와 자식 재정의 순서를 보존; 다음으로 `references`·가장 가까운 설정 처리 |
+| P1 | `core/symbols.ts:67`, `mcp/tools.ts:153`: `Child.work` 변경 영향도에서 `Base` 타입의 호출자 `entry` 누락 | Python 메서드를 `function`으로 저장하지만 오버라이드 영향 추적은 `method`만 허용 | 메서드 분류 또는 소유 클래스 판별을 공유하고 기존 Python fixture·캐시·내보내기·영향도 호출자를 함께 갱신 |
+| P1 | `core/symbols.ts:78`, `storage/index.ts`: Java의 `work()`·`work(int)`가 1개 심볼로 덮어써짐 | ID가 파일·범위·이름만 포함, 시그니처 구분 없음 | 오버로드를 보존하는 ID와 후보 선택을 함께 설계; 이름 기반 기존 조회·상속·캐시·내보내기 호환도 같이 처리 |
+| P2 | `mcp/tools.ts:77`: 파일의 절대 경로로 `get_dependencies` 호출 시 임포트가 있어도 빈 배열 | 파일이 아닌 심볼만 먼저 찾고 없으면 즉시 반환 | 파일 경로를 별도 조회 대상으로 인정하고 그 파일의 의존성을 조회 |
+| P2 | `core/imports.ts:50`: 실제 존재하는 빈 `empty.ts`의 부작용 임포트가 로컬 파일로 연결되지 않고 외부 모듈처럼 표현됨 | 알려진 파일을 심볼의 `filePath`에서만 구성 | 파일 목록을 추출 사실과 별도로 보존해 심볼 없는 파일도 임포트 해석·내보내기·통계에서 사용 |
+| P2 | `mcp/tools.ts:93`: 정확한 `a.ts::work` ID로 호출자를 조회해도 대상 미확정인 `unknown::work` 호출을 포함 | 정확한 ID 매칭과 이름 기반 미해결 후보를 한 결과에 합침 | 정확한 ID 조회는 실제 대상 ID를 기준으로 반환하고 미해결 후보는 별도 표시 |
+
+동일 입력의 Graphify는 일반 함수 표현식·제너레이터를 각각 함수로 추출해 호출자를 구분했고, `tsconfig extends` 별칭도 처리했다. Java 오버로드 합침은 이 비교 버전의 Graphify에서도 발생했다. 빈 모듈은 Graphify가 파일 노드를 보존했지만 부작용 임포트 링크는 생성하지 않았으므로 해당 기능의 완전 우세로 판정하지 않는다. Python 변경 영향도와 MCP 조회 API는 원본 CLI의 동일 기능 검사를 수행하지 않았으며 로컬 API 계약과 비교한 문제다.
+
+### 성능과 최적화 검토
+
+기존 이름 해석 마이크로벤치마크만으로 엔진 전체 성능을 판단하지 않았다. 이번에는 기존 `.test/performance.cjs --large-only`로 혼합 300파일·Python 300파일을 각각 5개 블록에서 측정했다. 각 블록은 lightweight·Graphify 순차·Graphify 4워커의 순서를 회전하고, 첫 실행·프로세스 내 반복·한 파일 변경·재시작을 구분한다. AST 추출·관계 해석·내부 JSON 저장 범위이며 HTML·보고서·군집화·전체 CLI의 동일 작업 비교는 아니다.
+
+구조 변경 전 기준 측정은 `.test/performance-XJtmGn/{result,audit}.json`이며 입력 해시·변경 반영·캐시 적중·호출 정답·오연결 감사가 통과했다. 해당 `audit.json.environment.sourceHashes`는 감사 시점의 작업 소스 해시이므로 변경 전 측정 런타임을 증명하는 해시로 사용하지 않는다. 기능 검사와 겹쳐 중단한 `.test/performance-53uqg9/`와 최종 파일 분리 이전 단계인 `.test/performance-xafCiC/`는 최종 구조의 성능 판정에 사용하지 않는다.
+
+**사용자가 성능 측정을 나중에 하도록 요청해 최종 재측정을 중단했다.** `.test/performance-ocVr7P/`는 미완료 결과이며 최종 파사드·팩토리 구조의 속도 우세나 성능 회귀 여부를 판정하는 근거로 사용하지 않는다. 생성한 측정 자료는 삭제하지 않고 보존했다. 이번 전달 범위는 구조 변경과 기능·정확도 검증까지이며 최종 성능 측정과 `--verify-current` 감사는 추후 수행한다.
+
+최적화 우선순위는 다음과 같다. 모두 현재 코드에서 확인한 비용 구조이며, 아래 변경을 이미 구현하거나 각각의 개선 배수를 측정했다는 뜻은 아니다.
+
+1. **파일별 항목 제거의 전체 스캔 제거**: `GraphIndex.updateFile → removeFileEntries`가 매 파일마다 심볼·해석 관계·원시 관계 전체를 순회한다. 전체 생성은 빈 그래프에서 시작해도 파일마다 누적 항목을 스캔하며, warm에서도 비용이 반복된다. 파일별 ID 목록을 재사용하거나 빈 스냅샷 전체 생성의 불필요한 제거를 생략한다. 호출·임포트 재해석은 전체 사실이 모인 뒤 한 번 수행하는 기존 규칙을 보존한다.
+2. **조회 때 전체 분석 반복 방지**: `getGodNodes`, `getCommunities`, `queryGraph`, `findShortestPath`, overview가 매번 `buildExportedGraph`의 군집화·통계·순환 탐지를 다시 수행한다. 루트와 불변 스냅샷 세대별로 분석 결과를 재사용하고, 호출/영향도는 역방향 인접 목록을 사용한다. 현재 영향도는 방문한 심볼마다 전체 관계를 재검색한다.
+3. **실제 변경 파일 중심 Watch**: 변경 파일을 수집하지만 매번 `buildProjectIndex`로 전체 파일을 읽고 다시 연결·내보낸다. 변경·제거 파일을 반영하되 의존 대상 변경 시 과거 연결이 남지 않도록 원시 사실 재해석은 보존한다. 2,000개 초과 시 메모리 AST 캐시를 통째로 비우는 정책도 큰 입력에서 반복 캐시 손실을 유발할 수 있으므로 파일 수 경계 검사가 필요하다.
+4. **WASM과 저장 스냅샷 수명**: 현재는 파서 초기화마다 모든 언어 문법을 로드한다. 프로젝트에 필요한 문법의 지연 로드를 우선 검토한다. 개별 산출물의 tmp→rename은 있지만 네 파일 전체의 발행은 하나의 트랜잭션이 아니므로 중간 실패/동시 읽기에서 세대가 섞일 수 있다. 마지막 완료 표식 또는 세대 ID로 정합성을 확인하는 개선이 필요하다. 이 항목은 실패 주입으로 직접 재현하지 않았다.
+
+### Graphify 발전을 반영하기 쉬운 구조인지
+
+**호출 규칙의 일부 개선은 반영하기 쉽지만 전체 기능을 그대로 이식할 수 있는 구조는 아니다.** `extractedRelations` 원시 사실 보존, `ImportResolver` 경계, `RelationResolver`의 이름 색인·책임 연쇄는 유지할 가치가 있다. 반면 기존 언어 추출 분기와 저장 계층의 방언 처리는 확장 지점이 불명확했고, 캐시 의미 버전과 상속·디스패치·관계 종류의 전파 범위도 관리가 필요하다.
+
+원본은 [언어별 resolver registry](https://github.com/Graphify-Labs/graphify/blob/v8/graphify/resolver_registry.py)에 언어 조건과 실행 패스를 등록한다. [공통 interface dispatch](https://github.com/Graphify-Labs/graphify/blob/v8/graphify/interface_dispatch.py)는 인터페이스 메서드에서 구현 메서드로 이어지는 관계를 별도 표현한다. lightweight의 단일 대상 호출과 5개 관계 종류만으로 이 동작을 그대로 표현할 수는 없다.
+
+| 원본 발전 지점 | 로컬 반영 지점 | 함께 확인할 범위 |
+| --- | --- | --- |
+| 언어별 AST 구문·선언·호출 추출 | 신규 `LanguageAnalyzer` 전략 | 문법 WASM·확장자·fixture·오연결·구문 경고 |
+| 설정 상속·패키지·경로 규칙 | `ImportResolver` | source 파일별 설정, 별칭, 원시 bindings, 캐시 복원 |
+| 호출 후보·렉시컬/수신자 해석 | `RelationResolver` 전략 체인 | 규칙 순서, 언어 계열, 미해결 보존, 후보 근거 |
+| 인터페이스 dispatch 등 새 관계 | `RelationKind`와 추출/해석 | 캐시 검증·내보내기 이름/가중치·영향도·조회·보고서·기존 JSON 호환 |
+| 군집화·분석 지표 | `buildExportedGraph` | 결과 정의·가중치·재현성·성능을 별도로 비교 |
+
+단기적으로는 검토한 Graphify 버전/원본 모듈 해시와 로컬 원시 사실 버전을 기록하고, 같은 수작업 정답 fixture를 양쪽 엔진에 실행하는 기존 비교 방식을 유지하는 것이 적합하다. 새 추출 규칙에 이전 캐시가 그대로 재사용되지 않도록 추출 의미 버전의 무효화 정책도 필요하다. 규칙별 판정 이유를 보존하면 후보 오연결을 추적하기 쉽다. 런타임 플러그인 검색기나 추가 Factory 계층은 필요하지 않다.
+
+### 요청에 따라 적용한 언어 분석 디자인 패턴
+
+- **Facade**: `core/analyzers.ts`의 `analyzeFile()`이 파일 분석의 단일 진입점이다. `GraphIndex`는 언어별 생성·선택·방언 처리를 직접 알지 않는다. 기존 타입·분석기 조회도 파사드에서 노출해 호출자의 내부 경로 의존을 줄였다.
+- **Factory + Registry**: `core/language/factory.ts`가 언어별 `createAnalyzer()`를 선택하고 상태 없는 전략 인스턴스를 재사용한다. `ANALYZER_FACTORIES satisfies Record<Language, () => LanguageAnalyzer>`가 문법 설정에 추가된 언어의 생성 함수 등록 누락을 컴파일 시점에 검출한다.
+- **Strategy**: `core/language/`의 `javascript.ts`, `typescript.ts`, `tsx.ts`, `python.ts`, `java.ts`, `go.ts`, `rust.ts`, `c.ts`, `cpp.ts`, `csharp.ts`, `objc.ts`, `objcpp.ts`, `cuda.ts`로 13개 언어를 구분했다. 공통 규칙을 사용하는 언어는 짧은 생성 함수만 둔다. `family`, `implicitThis` 정책도 해당 언어 파일에서 지정한다.
+- **Template Method**: `language/base.ts`의 `AstLanguageAnalyzer` 공통 절차 안에서 `parse`, `extractSymbols`, `extractRelations`를 재정의한다. 기존 AST 방문 코드는 재사용하고, 새 언어의 독립 추출기는 기존 언어의 중앙 분기를 수정하지 않고 연결할 수 있다. AST 해제와 추출 예외 전파는 재사용한다.
+- **방언 격리**: `.h`의 C++ 대체는 `language/c.ts`의 `CHeaderAnalyzer`, Objective-C++의 이중 AST 처리는 `language/objcpp.ts`의 `ObjectiveCppAnalyzer`에 두고 기존 오류 경고·보조 문법 null 허용·결과 병합을 보존했다.
+- 새 언어 실제 추가는 요청 범위가 아니므로 수행하지 않았다. 언어 고유 모듈 경로·패키지/동적 디스패치 규칙은 별도 의미 분석 보강이 필요하다. 문법 한 줄 등록만으로 의미 분석이 완성된다는 설계는 아니다.
+
+```mermaid
+flowchart LR
+    C[languages.json 문법·확장자] --> P[CodeParser와 WASM 번들]
+    C --> R[언어 생성 함수 레지스트리]
+    E[GraphIndex 파일 갱신] --> F[analyzers.ts 파사드]
+    F --> X[language/factory.ts 팩토리]
+    X --> R
+    R --> A[language/언어명.ts 전략]
+    P --> A
+    A --> T[공통 파싱·추출·트리 해제]
+    T --> H[언어별 선언·관계 추출 훅]
+    H --> G[원시 사실·저장]
+    G --> I[임포트 해석]
+    I --> S[호출 해석 전략 체인]
+    R --> M[family와 implicitThis]
+    M --> S
+    S --> Q[MCP·CLI·내보내기]
+```
+
+변경 범위는 `core/analyzers.ts`, `core/language/`, `storage/index.ts`, `core/resolution.ts`, README, `.test/`의 재현/전략 검사, 검사 스크립트를 보존할 `.gitignore`, 이 보고서다. MCP·CLI 인수와 그래프 스키마는 변경하지 않았다. 새 클래스 계층은 공통 분석기와 기존 두 방언 처리에 한정했고 의존성은 추가하지 않았다. 신규 언어 추가는 문법 설정·언어 파일·팩토리 등록·반례로 진행하며 파사드와 저장 흐름은 그대로 사용한다.
+
+변경 후 타입 검사·Jest 14개·13개 언어 통합·증분/캐시 및 Graphify 후보 규칙 비교·26개 정확도 반례·HTML 안전성·production 번들·실제 stdio MCP 13개 도구/다중 프로젝트/CLI/동시 생성 검사가 통과했다. 신규 `.test/language-analyzers.cjs`는 기존 13개 샘플 원시 사실의 동일성, 독립 추출 훅, `.h` 대체 문법, Objective-C++ 보조 문법 미제공, 추출 실패 시 AST 해제를 확인한다. 검토에서 확인한 버그 7건은 남아 있다.
+
+## 2026-10-29 15:25 스킬 정리와 현재 Codex MCP 연결 진단
+
+### 스킬 설명 정리
+
+- 원인: `skill/SKILL.md`의 CLI 예제가 특정 PC의 옛 소스 경로를 반복하고, README의 CLI 사용법과 중복됐다. 확장 설치 경로에서도 그대로 실행할 수 없는 안내였다.
+- 수정: CLI 직접 실행 절과 워크플로의 CLI 대안을 제거하고, 설명의 PC 절대 경로도 제거했다. MCP 도구와 분석 흐름은 유지하고, 세션에 도구가 없는 경우 연결 확인과 기존 보고서 참조를 안내했다.
+- 범위: 배포 원본 `lightweight-graph-mcp/skill/SKILL.md`만 수정했다. CLI 구현과 README의 사용법은 유지한다. 설정 스크립트는 이 원본을 복사하므로 별도 코드 수정이 필요 없다. 이미 설치된 확장과 전역 스킬 사본에는 이후 재패키징·재설치·스킬 등록이 필요하다.
+- 검증: `git diff --check`가 통과했다. 스킬 검증기 `quick_validate.py`는 로컬 Python에 PyYAML이 없어 실행하지 못했다. 문서 변경을 위해 의존성을 추가하지 않았다.
+
+### 도구가 현재 대화에 없는 이유
+
+- 확인: 현재 대화의 도구 목록에는 Graph MCP가 없다. `C:/Users/cmage/.codex/config.toml`에는 `lightweight-graph-mcp`가 등록돼 있으며, Node와 설치 확장의 `dist/mcp/server.js`가 모두 존재한다.
+- 시간 증거: VS Code `window2/exthost/openai.chatgpt/Codex.log`에서 Codex app-server가 15:02:32~36에 시작됐다. 등록 직전 백업 `config.toml.20261029-151708.bak`에는 Graph MCP가 없고, 다음 백업에는 있다. 설정 파일 최종 갱신은 15:17:24다.
+- 직접 확인: 등록된 Node·서버 경로를 그대로 사용한 별도 MCP SDK stdio 클라이언트가 약 158ms에 연결됐다. 도구 13개를 수신하고 `get_index_status({ project_path: <현재 작업공간> })`가 `Ready`, 심볼 1,211개·관계 3,644개를 반환했다. 그래프 생성은 실행하지 않았다.
+- 판정: 서버 실행 실패보다 등록 이전에 시작된 Codex 세션의 설정 미반영이 유력하다. 별도 진단 클라이언트의 성공은 현재 대화에 MCP 도구가 추가됐다는 뜻은 아니다. 확인한 Codex 로그와 MCP 대상 SQLite 로그에서는 Graph MCP 시작 실패 기록을 찾지 못했다.
+- 조치: Codex 확장의 MCP 설정에서 확장을 재시작하거나 VS Code의 `Developer: Reload Window`를 실행한 뒤 도구 노출을 다시 확인한다. [공식 MCP 문서](https://developers.openai.com/codex/mcp/)도 IDE에서 서버 설정 저장 후 확장 재시작을 안내한다.
+- 한계: 진행 중인 대화를 끊는 IDE 재시작과 설치본 갱신은 실행하지 않았다. 재시작 후 도구 노출 여부는 아직 확인하지 않았다.
+- 후속 확인: 이후 현재 대화에 `mcp__lightweight_graph_mcp`의 도구 13개가 노출됐다. 셸의 별도 클라이언트 없이 실제 MCP 도구 `get_index_status`를 직접 호출해 `Ready`, 심볼 1,211개·관계 3,644개 응답을 확인했다. 현재 세션에서 MCP 연결·상태 조회가 가능하며 그래프 재생성은 실행하지 않았다.
+
 ## 2026-10-29 Graphify 대비 성능 직접 검증
 
 ### 비교를 다시 구성한 이유와 범위

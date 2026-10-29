@@ -30,3 +30,6 @@ out/
 !.test/config-safety.ps1
 !.test/cache-benchmark.ts
 !.test/resolution-benchmark.ts
+!.test/audit-20261029.cjs
+!.test/language-analyzers.cjs
+!.test/language-baseline.json

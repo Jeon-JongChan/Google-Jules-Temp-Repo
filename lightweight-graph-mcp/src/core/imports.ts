@@ -3,6 +3,7 @@ import * as path from 'path';
 import { GraphData } from '../common/types';
 import languages from '../common/languages.json';
 import { CodeParser } from './parser';
+import { getLanguageAnalyzer } from './analyzers';
 
 /** JSONC 문자열에서 문자열 리터럴을 보존하면서 주석과 끝 쉼표를 제거한다. */
 function stripJsonc(raw: string): string {
@@ -69,9 +70,8 @@ export class ImportResolver {
             let resolvedTargetId: string | null = null;
             const candidates = [rel.targetId];
             const language = CodeParser.getLanguageFromFile(rel.sourceId);
-            const candidateExts = language && ['javascript', 'typescript', 'tsx'].includes(language)
-                ? ['.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '.mjs', '.cjs']
-                : language === 'python' ? ['.py'] : exts;
+            const analyzer = language ? getLanguageAnalyzer(language) : null;
+            const candidateExts = analyzer?.importExtensions || exts;
 
             // tsconfig.json compilerOptions.paths 및 baseUrl 확장
             for (const [aliasPattern, targetDirs] of Object.entries(tsConfig.paths)) {
@@ -91,19 +91,7 @@ export class ImportResolver {
                 candidates.push(path.join(tsConfig.baseUrl, rel.targetId));
             }
 
-            if (language === 'python' && rel.targetId.startsWith('.')) {
-                // 첫 점은 현재 패키지이며 추가 점마다 부모로 이동한다. 루트 후보로 대체하면 다른 모듈에 연결된다.
-                const dots = rel.targetId.match(/^\.+/)![0].length;
-                const modulePath = rel.targetId.slice(dots).split('.').filter(Boolean);
-                candidates.push(path.resolve(path.dirname(rel.sourceId), ...Array(dots - 1).fill('..'), ...modulePath));
-            } else if (!path.isAbsolute(rel.targetId) && (language === 'python' || rel.targetId.includes('.'))) {
-                const relModulePath = rel.targetId.replace(/^\.+/, '').split('.').filter(Boolean).join(path.sep);
-                if (relModulePath) {
-                    const local = path.join(path.dirname(rel.sourceId), relModulePath);
-                    const rooted = path.join(this.workspaceRoot, relModulePath);
-                    candidates.push(...(language === 'python' ? [rooted, local] : [local, rooted]));
-                }
-            }
+            candidates.push(...(analyzer?.getModuleCandidates(rel.sourceId, rel.targetId, this.workspaceRoot) || []));
 
             for (const candidate of candidates) {
                 if (knownFiles.has(candidate)) {

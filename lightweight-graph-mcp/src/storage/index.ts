@@ -1,8 +1,7 @@
 import * as fs from 'fs';
 import { GraphData, Relation, SymbolInfo } from '../common/types';
 import { CodeParser } from '../core/parser';
-import { SymbolExtractor } from '../core/symbols';
-import { RelationExtractor } from '../core/relations';
+import { analyzeFile } from '../core/analyzers';
 import { GraphCache } from './cache';
 import { ImportResolver } from '../core/imports';
 import { RelationResolver } from '../core/resolution';
@@ -21,8 +20,6 @@ export class GraphIndex {
     private data: GraphData;
     private cache: GraphCache;
     private parser = new CodeParser();
-    private symbolExtractor = new SymbolExtractor();
-    private relationExtractor = new RelationExtractor();
     private extensionPath?: string;
     private parseErrorFiles = new Set<string>();
     private workspaceRoot: string;
@@ -84,59 +81,29 @@ export class GraphIndex {
                 return;
             }
 
-            let tree = this.parser.parse(content, language);
-            // .h는 C와 C++가 공유하므로 C 문법에서 오류가 날 때 C++도 확인한다.
-            if (tree?.rootNode.hasError && path.extname(filePath) === '.h') {
-                const cppTree = this.parser.parse(content, 'cpp');
-                if (cppTree && !cppTree.rootNode.hasError) {
-                    tree.delete();
-                    tree = cppTree;
-                } else { cppTree?.delete(); }
+            const { symbols, relations, hasError } = analyzeFile(language, content, filePath, this.parser);
+            if (rawAstCache.size > 2000) rawAstCache.clear();
+            rawAstCache.set(filePath, {
+                content,
+                hasError,
+                symbols: symbols.map(s => ({ ...s })),
+                relations: relations.map(r => ({ ...r }))
+            });
+            this.removeFileEntries(filePath);
+            if (hasError) this.parseErrorFiles.add(filePath);
+
+            // 키가 같은 중복 선언은 하나로 합친다.
+            for (const sym of symbols) {
+                this.data.symbols[sym.id] = sym;
             }
-            const hasError = Boolean(tree?.rootNode.hasError);
+            for (const rel of relations) {
+                this.data.relations[rel.id] = { ...rel };
+                this.data.extractedRelations![rel.id] = { ...rel };
+            }
 
-            if (tree) {
-                try {
-                    // 혼합 Objective-C++는 두 문법에서 인식한 선언과 관계를 합친다.
-                    const symbols = this.symbolExtractor.extractSymbols(tree, filePath, language);
-                    const relations = this.relationExtractor.extractRelations(tree, filePath, language);
-                    if (language === 'objcpp') {
-                        const cppTree = this.parser.parse(content, 'cpp');
-                        if (cppTree) {
-                            try {
-                                symbols.push(...this.symbolExtractor.extractSymbols(cppTree, filePath, language));
-                                relations.push(...this.relationExtractor.extractRelations(cppTree, filePath, language));
-                            } finally { cppTree.delete(); }
-                        }
-                    }
-                    if (rawAstCache.size > 2000) rawAstCache.clear();
-                    rawAstCache.set(filePath, {
-                        content,
-                        hasError,
-                        symbols: symbols.map(s => ({ ...s })),
-                        relations: relations.map(r => ({ ...r }))
-                    });
-                    this.removeFileEntries(filePath);
-                    if (hasError) this.parseErrorFiles.add(filePath);
-
-                    // 키가 같은 중복 선언은 하나로 합친다.
-                    for (const sym of symbols) {
-                        this.data.symbols[sym.id] = sym;
-                    }
-                    for (const rel of relations) {
-                        this.data.relations[rel.id] = { ...rel };
-                        this.data.extractedRelations![rel.id] = { ...rel };
-                    }
-
-                    if (!skipSave) {
-                        this.resolveRelations();
-                        await this.cache.save(this.data);
-                    }
-                } finally {
-                    tree.delete();
-                }
-            } else {
-                throw new Error(`지원 언어 파일을 파싱하지 못했습니다: ${filePath}`);
+            if (!skipSave) {
+                this.resolveRelations();
+                await this.cache.save(this.data);
             }
         } catch (error) {
             throw new Error(`파일 색인 실패: ${filePath}`, { cause: error });

@@ -171,16 +171,53 @@ Graphify 개선을 반영할 때의 대응 지점은 다음과 같습니다.
 | `extractors/resolution.py`의 경로·설정 해석 | `src/core/imports.ts`의 `ImportResolver` |
 | `paths.py`의 테스트 제외·경로 근접도 | `src/core/candidates.ts`의 `disambiguateCandidates` |
 | `symbol_resolution.py`의 이름 색인·호출 해석 | `src/core/resolution.ts`의 `RelationResolver`, `RESOLUTION_RULES` |
-| AST 추출 사실 | `src/core/relations.ts`, `src/core/symbols.ts` |
+| AST 추출 사실 | `src/core/language/`의 전략과 공통 `declarations.ts`, `language/base.ts` |
 
 개선 반영 순서:
 
 1. 수정 전 `src`를 비어 있는 `.test/optimization-before/src/`에 보관합니다. 기존 기준본은 덮어쓰지 않습니다.
 2. 검토할 Graphify 버전의 별도 Python 환경으로 위 두 비교 검사를 실행하고 관계 차이·원본 소스를 확인합니다. Graphify 결과 자체를 정답으로 간주하지 않습니다.
-3. 대응 어댑터나 전략 함수를 수정합니다. 새 규칙의 실패 반례는 `.test/`의 기존 assert 검사에 추가합니다. 새 Factory나 플러그인 로더 없이 규칙 목록과 함수만 변경하면 됩니다.
+3. 대응 어댑터나 언어별 전략을 수정합니다. 새 규칙의 실패 반례는 `.test/`의 기존 assert 검사에 추가합니다. 새 언어는 기존 팩토리에 생성 함수를 등록하며 플러그인 로더는 필요하지 않습니다.
 4. 타입 검사·기존 검사·비교 검사·번들 빌드·실제 MCP 검사를 수행한 뒤 그래프를 다시 생성합니다. 실행 중인 MCP는 재시작합니다.
 
 기본 후보 선택 순서·유일성 규칙과 전역 추론 점수 `0.85`는 검증한 Graphify 규칙에 맞춥니다. 언어의 대소문자 구분, 수신자 타입·스코프 증거, JSONC 문자열 보존은 원본 코드의 정확성을 우선합니다. Leiden 군집화·Graphify 전체 CLI 및 모든 언어의 완전한 동작 일치를 제공하지는 않습니다.
+
+## 9. 언어별 분석 책임과 확장 절차
+
+`src/core/analyzers.ts`에 **Facade와 Factory**를 함께 둔다. `analyzeFile()`이 단일 진입점이며, 같은 파일의 생성 함수 등록표와 `getLanguageAnalyzer()`가 언어 전략을 선택·재사용한다. `GraphIndex`는 문법이나 언어별 AST 규칙을 알지 않는다.
+
+**Strategy**의 실제 구현은 `src/core/language/<언어명>.ts`에 있다. `PythonAnalyzer`는 Python 선언, 렉시컬 범위, `self`와 매개변수 타입, 별칭 임포트, 호출·타입 참조·상속, 상대 모듈 후보를 직접 처리한다. Java/C#은 선언 표와 임포트 구문, Go는 receiver 소유 범위, Rust는 `impl` 범위, Objective-C는 selector를 해당 파일에서 처리한다. JS/TS의 공통 런타임 구문은 `JavascriptAnalyzer`를 공유하고, TypeScript는 타입 선언·참조·인터페이스 범위를 보강한다. TSX와 CUDA는 기존 지원 범위에 맞게 TypeScript와 C++ 전략을 재사용한다.
+
+`language/base.ts`의 추상 `AstLanguageAnalyzer`는 **Template Method**로 순회 → 타입 증거 수집 → 관계 추출 → 트리 해제를 공유한다. 새 언어는 `getDeclaration`, `extractNodeRelations`를 반드시 구현하며 필요하면 `scopeName`/`getScope`, `collectReceiverTypes`, `getModuleCandidates`, `parse`를 재정의한다. `NativeLanguageAnalyzer`는 네이티브 계열의 공통 관계 조립을 제공하며, 구체 언어가 선언 표와 임포트 구문을 공급한다.
+
+`declarations.ts`에는 이름·타입 정리, 범위 변환, 방문 순회 등 공유 연산을 둔다. 기존 `symbols.ts`, `relations.ts`의 중앙 언어 분기를 제거하고, 별도 `language/factory.ts`도 파사드에 합쳐 직전 구조보다 제품 소스 파일을 3개 줄였다. AST 순회 콜백은 Visitor 방식이다. Watch의 `onRebuildStart/Done/Error` 알림은 기존 **Observer** 역할을 재사용하고, 호출 해석은 `RelationResolver`의 기존 **책임연쇄**를 유지한다. 프록시는 현재 필요한 경계가 없어 추가하지 않았다.
+
+신규 언어를 추가할 때는 다음 순서로 작업한다.
+
+1. `src/common/languages.json`에 문법·확장자를 추가하고 해당 WASM 자산이 있는지 확인한다. 파서와 번들은 이 설정을 사용한다.
+2. `language/<언어명>.ts`에 실제 AST 규칙을 구현하고 `createAnalyzer()`에서 전략을 생성한다. 분석기를 인수만 바꿔 생성하는 래퍼로 끝내지 않는다.
+3. `analyzers.ts`의 `ANALYZER_FACTORIES`에 생성 함수를 등록한다. `satisfies Record<Language, () => LanguageAnalyzer>`가 등록 누락을 타입 검사에서 잡는다. `family`와 `implicitThis`, 임포트 확장자·모듈 후보도 전략에서 지정한다.
+4. `.test/`에 선언·호출·스코프·임포트·오연결 반례를 추가한다. 언어 고유 디스패치가 필요하면 관계 해석도 보강한다.
+5. 타입 검사·린트·기존 검사·번들·MCP를 검증하고 색인을 재생성한다. 실행 중인 MCP는 재시작한다.
+
+`ImportResolver`는 전략의 모듈 후보·확장자 정책을 사용해 실제 파일에 연결한다. tsconfig 별칭과 파일 존재 확인 등 공통 연결 절차는 공유한다. 문법 등록만으로 언어의 의미 분석 전체가 완성되지는 않는다.
+
+```mermaid
+flowchart LR
+    W[Watch] --> F[GraphIndex 파일 갱신]
+    W -->|기존 알림 콜백| O[확장 UI와 CLI]
+    F --> A[analyzers.ts 파사드와 팩토리]
+    A --> L[language/언어명.ts 실제 전략]
+    L --> B[base.ts 순회·결과 조립·트리 해제]
+    B --> R[언어별 선언·범위·관계 규칙]
+    R --> G[원시 사실]
+    G --> I[ImportResolver]
+    L -->|모듈 후보 정책| I
+    I --> C[RelationResolver 책임연쇄]
+    C --> S[저장·MCP·CLI]
+```
+
+`.test/language-analyzers.cjs`는 분리 전에 보존한 `.test/language-baseline.json`과 13개 언어의 원시 사실 전체를 비교한다. 팩토리 재사용, 독립 추출 훅, `.h` 대체 파싱, Objective-C++ 보조 문법 미제공, 실패 시 트리 해제도 확인한다. 비교 대상 양쪽이 같은 새 구현을 실행하는 방식으로 동일성을 판정하지 않는다.
 
 ## 라이선스
 
