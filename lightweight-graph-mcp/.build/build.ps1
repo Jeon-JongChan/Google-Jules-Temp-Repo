@@ -1,4 +1,4 @@
-#requires -Version 5.1
+﻿#requires -Version 5.1
 <#
 .SYNOPSIS
   lightweight-graph-mcp 프로젝트를 .build 내 포터블 Node.js 환경으로 빌드하고 .vsix 패키지를 생성합니다.

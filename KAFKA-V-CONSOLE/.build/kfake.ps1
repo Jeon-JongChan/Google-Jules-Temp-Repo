@@ -1,4 +1,4 @@
-#requires -Version 5.1
+﻿#requires -Version 5.1
 <#
 .SYNOPSIS
  검증용 인메모리 Kafka (franz-go kfake). .build 포터블 Go 로 빌드한 뒤 127.0.0.1:19092 에 띄운다.
