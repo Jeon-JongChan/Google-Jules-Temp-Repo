@@ -127,8 +127,8 @@ static func avatar(diameter: int = 36) -> TextureRect:
 	return tr
 
 
-## 자원 칩이 포함된 상단바. on_back 이 Callable 이면 뒤로 버튼을 단다.
-static func top_bar(title_text: String, on_back = null) -> PanelContainer:
+## 자원 칩 및 인게임 볼륨 슬라이더가 포함된 상단바. on_back 이 Callable 이면 뒤로 버튼을 단다.
+static func top_bar(title_text: String, on_back = null, show_volume: bool = true) -> PanelContainer:
 	var bar := PanelContainer.new()
 	bar.add_theme_stylebox_override("panel", style(BG2, BORDER, 0))
 	var h := HBoxContainer.new()
@@ -144,10 +144,94 @@ static func top_bar(title_text: String, on_back = null) -> PanelContainer:
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	h.add_child(spacer)
-	h.add_child(chip("금화 %d" % GameState.gold, GOLD))
-	h.add_child(chip("마나석 %d" % GameState.manastone, BLUE))
-	h.add_child(chip("행동력 %d/%d" % [GameState.action_points, GameState.max_action_points], TEXT2))
+	var gold_val := 0
+	var mana_val := 0
+	var ap_val := 0
+	var max_ap_val := 3
+	var main_loop = Engine.get_main_loop()
+	var root_node = main_loop.root if (main_loop != null and "root" in main_loop) else null
+	var gs = root_node.get_node_or_null("GameState") if root_node != null else null
+	if gs != null:
+		gold_val = gs.gold
+		mana_val = gs.manastone
+		ap_val = gs.action_points
+		max_ap_val = gs.max_action_points
+
+	h.add_child(chip("금화 %d" % gold_val, GOLD))
+	h.add_child(chip("마나석 %d" % mana_val, BLUE))
+	h.add_child(chip("행동력 %d/%d" % [ap_val, max_ap_val], TEXT2))
+	if show_volume:
+		h.add_child(volume_controller())
 	return bar
+
+
+## 실시간 마스터 오디오 볼륨을 제어하는 인게임 슬라이더 위젯.
+## 스피커 아이콘 클릭 시 음소거 토글, 슬라이더 조절 시 AudioServer 마스터 버스에 즉각 반영합니다.
+static func volume_controller() -> PanelContainer:
+	var container := PanelContainer.new()
+	container.add_theme_stylebox_override("panel", style(BG3, BORDER2, 6, 1))
+
+	var hbox := HBoxContainer.new()
+	hbox.add_theme_constant_override("separation", 6)
+	container.add_child(hbox)
+
+	var icon_btn := Button.new()
+	icon_btn.text = "🔊"
+	icon_btn.focus_mode = Control.FOCUS_NONE
+	icon_btn.flat = true
+	icon_btn.add_theme_font_size_override("font_size", 12)
+	hbox.add_child(icon_btn)
+
+	var slider := HSlider.new()
+	slider.custom_minimum_size = Vector2(90, 20)
+	slider.min_value = 0.0
+	slider.max_value = 1.0
+	slider.step = 0.05
+	slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	slider.focus_mode = Control.FOCUS_NONE
+
+	var bus_idx := AudioServer.get_bus_index("Master")
+	var current_vol_linear: float = 0.8
+	if bus_idx >= 0:
+		if AudioServer.is_bus_mute(bus_idx):
+			current_vol_linear = 0.0
+		else:
+			current_vol_linear = db_to_linear(AudioServer.get_bus_volume_db(bus_idx))
+	slider.value = clampf(current_vol_linear, 0.0, 1.0)
+	hbox.add_child(slider)
+
+	var pct_label := label("%d%%" % int(slider.value * 100), 11, TEXT2)
+	pct_label.custom_minimum_size = Vector2(36, 0)
+	pct_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	hbox.add_child(pct_label)
+
+	var prev_vol: Array[float] = [0.8]
+	if slider.value > 0.05:
+		prev_vol[0] = slider.value
+
+	var update_volume = func(val: float):
+		if bus_idx >= 0:
+			if val <= 0.01:
+				AudioServer.set_bus_mute(bus_idx, true)
+				icon_btn.text = "🔇"
+			else:
+				AudioServer.set_bus_mute(bus_idx, false)
+				AudioServer.set_bus_volume_db(bus_idx, linear_to_db(val))
+				icon_btn.text = "🔉" if val < 0.5 else "🔊"
+		pct_label.text = "%d%%" % int(val * 100)
+
+	slider.value_changed.connect(update_volume)
+
+	# 음소거 토글 버튼 연결
+	icon_btn.pressed.connect(func():
+		if slider.value > 0.01:
+			prev_vol[0] = slider.value
+			slider.value = 0.0
+		else:
+			slider.value = prev_vol[0] if prev_vol[0] > 0.05 else 0.8
+	)
+
+	return container
 
 
 ## 화면 루트에 깔 배경(단색).
