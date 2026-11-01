@@ -5,4 +5,5 @@ node_modules/
 VSCode AMI Tunning/
 .tools/.graphify/
 *.tmp
-Godot/build/*.tmp
+Godot/build/*
+!Godot/build/run.cmd
