@@ -64,3 +64,38 @@ func permanent_stress_value() -> int:
 	elif level <= 9:
 		return 10
 	return 15
+
+
+## 저장용 딕셔너리로 직렬화한다.
+func to_dict() -> Dictionary:
+	return {
+		"merc_name": merc_name,
+		"category": category,
+		"job": job,
+		"grade": grade,
+		"level": level,
+		"max_hp": max_hp,
+		"attack": attack,
+		"hp": hp,
+		"penalties": penalties.duplicate(),
+		"status": status,
+	}
+
+
+## 딕셔너리 데이터로부터 용병 객체를 복원한다.
+static func from_dict(data: Dictionary) -> Mercenary:
+	var m := Mercenary.new()
+	m.merc_name = data.get("merc_name", "이름 없음")
+	m.category = data.get("category", "전사")
+	m.job = data.get("job", "검사")
+	m.grade = data.get("grade", "일반")
+	m.level = int(data.get("level", 1))
+	m.max_hp = int(data.get("max_hp", 80))
+	m.attack = int(data.get("attack", 10))
+	m.hp = int(data.get("hp", m.max_hp))
+	var pens: Array = data.get("penalties", [])
+	m.penalties.clear()
+	for p in pens:
+		m.penalties.append(str(p))
+	m.status = int(data.get("status", Status.READY))
+	return m

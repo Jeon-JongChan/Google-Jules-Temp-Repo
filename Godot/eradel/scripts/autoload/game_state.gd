@@ -405,3 +405,80 @@ func return_to_estate() -> void:
 
 	last_result = {}
 	_check_game_over()
+
+
+## 게임 상태 전체를 저장용 딕셔너리로 직렬화한다.
+func to_dict() -> Dictionary:
+	var roster_data: Array[Dictionary] = []
+	for m in roster:
+		roster_data.append(m.to_dict())
+
+	# party에 속한 용병의 roster 인덱스 목록 기록
+	var party_indices: Array[int] = []
+	for p_merc in party:
+		var idx := roster.find(p_merc)
+		if idx != -1:
+			party_indices.append(idx)
+
+	return {
+		"gold": gold,
+		"manastone": manastone,
+		"action_points": action_points,
+		"max_action_points": max_action_points,
+		"day": day,
+		"morale": morale,
+		"dungeon_activity": dungeon_activity,
+		"monster_tier": monster_tier,
+		"stress_resolvable": stress_resolvable,
+		"stress_permanent": stress_permanent,
+		"buildings": buildings.duplicate(),
+		"death_log": death_log.duplicate(true),
+		"roster": roster_data,
+		"party_indices": party_indices,
+	}
+
+
+## 저장된 딕셔너리 데이터로부터 게임 상태를 복원한다.
+func from_dict(data: Dictionary) -> void:
+	gold = int(data.get("gold", 300))
+	manastone = int(data.get("manastone", 2))
+	action_points = int(data.get("action_points", 3))
+	max_action_points = int(data.get("max_action_points", 3))
+	day = int(data.get("day", 1))
+	morale = int(data.get("morale", 50))
+	dungeon_activity = int(data.get("dungeon_activity", 40))
+	monster_tier = int(data.get("monster_tier", 0))
+	stress_resolvable = int(data.get("stress_resolvable", 0))
+	stress_permanent = int(data.get("stress_permanent", 0))
+
+	buildings.clear()
+	var b_data: Dictionary = data.get("buildings", {})
+	for k in b_data:
+		buildings[k] = int(b_data[k])
+
+	death_log.clear()
+	var d_data: Array = data.get("death_log", [])
+	for d in d_data:
+		if d is Dictionary:
+			death_log.append(d.duplicate(true))
+
+	roster.clear()
+	var r_data: Array = data.get("roster", [])
+	for m_dict in r_data:
+		if m_dict is Dictionary:
+			roster.append(Mercenary.from_dict(m_dict))
+
+	party.clear()
+	var p_indices: Array = data.get("party_indices", [])
+	for idx in p_indices:
+		var i := int(idx)
+		if i >= 0 and i < roster.size():
+			party.append(roster[i])
+
+	last_result = {}
+
+	# 변경 시그널 일괄 방출
+	resources_changed.emit()
+	stress_changed.emit()
+	roster_changed.emit()
+	party_changed.emit()

@@ -162,6 +162,19 @@ static func top_bar(title_text: String, on_back = null, show_volume: bool = true
 	h.add_child(chip("행동력 %d/%d" % [ap_val, max_ap_val], TEXT2))
 	if show_volume:
 		h.add_child(volume_controller())
+
+	# 환경설정 팝업 열기 버튼
+	var setting_btn := button("⚙", GOLD)
+	setting_btn.custom_minimum_size = Vector2(32, 28)
+	setting_btn.pressed.connect(func():
+		var scene := load("res://scenes/ui/settings_popup.tscn")
+		if scene:
+			var popup = scene.instantiate()
+			if bar.get_tree() and bar.get_tree().current_scene:
+				bar.get_tree().current_scene.add_child(popup)
+	)
+	h.add_child(setting_btn)
+
 	return bar
 
 

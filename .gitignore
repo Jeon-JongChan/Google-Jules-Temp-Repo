@@ -4,3 +4,5 @@ node_modules/
 .archify
 VSCode AMI Tunning/
 .tools/.graphify/
+*.tmp
+Godot/build/*.tmp
