@@ -1,0 +1,6 @@
+{
+  "name": "Gemini OmniStudio (제미나 옴니스튜디오)",
+  "description": "음악(Lyria), 영상(Veo), 이미지(Imagen), 음성을 하나로 통합 제작하고 파일 간 유기적 연계를 지원하는 안드로이드 올인원 크리에이티브 스튜디오",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

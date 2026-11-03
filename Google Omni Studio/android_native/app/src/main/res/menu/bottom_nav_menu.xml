@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/nav_flow"
+        android:icon="@android:drawable/ic_menu_slideshow"
+        android:title="Flow (이미지/영상)" />
+    <item
+        android:id="@+id/nav_music"
+        android:icon="@android:drawable/ic_lock_silent_mode_off"
+        android:title="Flow Music" />
+    <item
+        android:id="@+id/nav_vault"
+        android:icon="@android:drawable/ic_menu_agenda"
+        android:title="보관함 (Vault)" />
+</menu>

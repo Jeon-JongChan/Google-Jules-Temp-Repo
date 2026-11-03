@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.omnistudio.labs">
+
+    <!-- 필수 인터넷 및 네트워크 상태 권한 (WebView 통신용) -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- 미디어 파일 기기 내 로컬 저장 및 재생 권한 (외부 서버 전송 없음) -->
+    <!-- Android 13+ (API 33+) 세분화된 미디어 권한 -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+
+    <!-- Legacy Android 9 이하 호환용 저장소 쓰기 권한 -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@android:drawable/sym_def_app_icon"
+        android:label="Google Flow Hub"
+        android:roundIcon="@android:drawable/sym_def_app_icon"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.OmniStudioLabs"
+        android:hardwareAccelerated="true"
+        android:usesCleartextTraffic="false">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:configChanges="orientation|screenSize|keyboardHidden|screenLayout"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+    </application>
+
+</manifest>
+<!--
+============================================================================
+[동작 확인 방법 - AndroidManifest.xml]
+1. 네트워크 및 인터넷 권한 확인:
+   - adb shell dumpsys package com.omnistudio.labs | grep permission
+   - android.permission.INTERNET 및 ACCESS_NETWORK_STATE 가 정상 부여되었는지 확인.
+2. 하드웨어 가속 검증:
+   - android:hardwareAccelerated="true" 설정으로 WebView의 캔버스 렌더링 및 CSS3/WebGL 부드러운 가속 확인.
+3. 보안 설정:
+   - android:usesCleartextTraffic="false" 적용으로 모든 Google Labs(Flow, Flow Music) 트래픽이 HTTPS로만 암호화 전송되는지 검증.
+============================================================================
+-->

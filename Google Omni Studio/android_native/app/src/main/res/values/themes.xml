@@ -1,0 +1,19 @@
+<resources>
+    <!-- Base application theme (Material 3 Dark) -->
+    <style name="Theme.OmniStudioLabs" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">#6366F1</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="colorSecondary">#06B6D4</item>
+        <item name="android:windowBackground">#0B0F19</item>
+        <item name="android:statusBarColor">#111827</item>
+        <item name="android:navigationBarColor">#111827</item>
+    </style>
+
+    <!-- FullScreen Dialog Theme for Google Login -->
+    <style name="FullScreenDialogTheme" parent="Theme.Material3.DayNight.Dialog">
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowFullscreen">false</item>
+        <item name="android:windowIsFloating">false</item>
+        <item name="android:windowBackground">#111827</item>
+    </style>
+</resources>

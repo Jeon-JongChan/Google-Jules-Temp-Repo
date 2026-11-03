@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingVertical="6dp">
+
+    <!-- 상태 원형 인디케이터 배지 -->
+    <View
+        android:id="@+id/viewStatusBadge"
+        android:layout_width="8dp"
+        android:layout_height="8dp"
+        android:background="#4B5563" />
+
+    <TextView
+        android:id="@+id/textStatusTitle"
+        android:layout_width="80dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:text="ImageFX"
+        android:textColor="#E5E7EB"
+        android:textSize="12sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/textStatusValue"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="8dp"
+        android:text="대기 중 (세션 연결됨)"
+        android:textColor="#9CA3AF"
+        android:textSize="12sp"
+        android:ellipsize="end"
+        android:maxLines="1" />
+</LinearLayout>

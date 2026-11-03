@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ko" class="dark h-full">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <script>
+      try {
+        sessionStorage.removeItem('warmup_start_time');
+        sessionStorage.removeItem('warmup_last_reload_time');
+        sessionStorage.removeItem('warmup_failed_sent');
+      } catch (e) {}
+
+      // Suppress benign Vite dev WebSocket reconnect messages in AI Studio debug panel
+      const _origError = console.error;
+      console.error = function(...args) {
+        if (typeof args[0] === 'string' && (args[0].includes('[vite] failed to connect to websocket') || args[0].includes('WebSocket closed without opened'))) {
+          return;
+        }
+        _origError.apply(console, args);
+      };
+      window.addEventListener('unhandledrejection', function(event) {
+        const msg = event.reason?.message || event.reason?.toString?.() || String(event.reason);
+        if (msg.includes('WebSocket') || msg.includes('websocket')) {
+          event.preventDefault();
+        }
+      });
+      window.addEventListener('error', function(event) {
+        const msg = event.message || '';
+        if (msg.includes('WebSocket') || msg.includes('websocket')) {
+          event.preventDefault();
+        }
+      });
+    </script>
+    <title>Gemini OmniStudio (제미나 옴니스튜디오)</title>
+    <meta name="description" content="음악(Lyria), 영상(Veo), 이미지(Imagen), 음성을 하나로 통합 제작하고 파일 간 유기적 연계를 지원하는 안드로이드 올인원 크리에이티브 스튜디오" />
+    <meta property="og:title" content="Gemini OmniStudio (제미나 옴니스튜디오)" />
+    <meta property="og:description" content="음악(Lyria), 영상(Veo), 이미지(Imagen), 음성을 하나로 통합 제작하고 파일 간 유기적 연계를 지원하는 안드로이드 올인원 크리에이티브 스튜디오" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="theme-color" content="#090d16" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="OmniStudio" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+  </head>
+  <body class="bg-slate-950 text-slate-100 antialiased h-full w-full overflow-hidden">
+    <div id="root" class="h-full w-full overflow-hidden"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Clear legacy service worker registrations and caches to prevent blank preview screen
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for (var r of registrations) {
+            r.unregister();
+          }
+        }).catch(function() {});
+      }
+      if ('caches' in window) {
+        caches.keys().then(function(names) {
+          for (var name of names) {
+            caches.delete(name);
+          }
+        }).catch(function() {});
+      }
+    </script>
+  </body>
+</html>
+

@@ -1,0 +1,306 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0B0F19">
+
+    <!-- 메인 컨텐츠 영역 (하이브리드 3개 컨테이너 전환) -->
+    <FrameLayout
+        android:id="@+id/mainContentFrame"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginBottom="56dp">
+
+        <!-- ============================================================= -->
+        <!-- 1. Google Flow 탭 컨테이너 (실제 모바일 웹뷰 노출) -->
+        <!-- ============================================================= -->
+        <LinearLayout
+            android:id="@+id/layoutFlowContainer"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:visibility="visible">
+
+            <!-- Flow 상단 브라우징 컨트롤 바 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:background="#111827"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="12dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Google Flow (통합 창작)"
+                    android:textColor="#FFFFFF"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <!-- 뒤로가기 -->
+                <ImageButton
+                    android:id="@+id/btnFlowBack"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="뒤로가기"
+                    android:src="@android:drawable/ic_media_previous"
+                    app:tint="#9CA3AF" />
+
+                <!-- 새로고침 -->
+                <ImageButton
+                    android:id="@+id/btnFlowReload"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="새로고침"
+                    android:src="@android:drawable/ic_menu_rotate"
+                    app:tint="#9CA3AF" />
+
+                <!-- 도움말 / 튜토리얼 (?) -->
+                <ImageButton
+                    android:id="@+id/btnFlowHelp"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="도움말"
+                    android:src="@android:drawable/ic_menu_help"
+                    app:tint="#818CF8" />
+            </LinearLayout>
+
+            <!-- 웹 로딩 인디케이터 -->
+            <ProgressBar
+                android:id="@+id/progressFlowLoading"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="3dp"
+                android:indeterminate="true"
+                android:visibility="gone" />
+
+            <!-- Google Flow 모바일 웹뷰 (화면에 전체 노출) -->
+            <WebView
+                android:id="@+id/webViewFlow"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+        </LinearLayout>
+
+        <!-- ============================================================= -->
+        <!-- 2. Flow Music 탭 컨테이너 (실제 모바일 웹뷰 노출) -->
+        <!-- ============================================================= -->
+        <LinearLayout
+            android:id="@+id/layoutMusicContainer"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <!-- Flow Music 상단 브라우징 컨트롤 바 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:background="#111827"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="12dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Flow Music (음악 스튜디오)"
+                    android:textColor="#FFFFFF"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <!-- 뒤로가기 -->
+                <ImageButton
+                    android:id="@+id/btnMusicBack"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="뒤로가기"
+                    android:src="@android:drawable/ic_media_previous"
+                    app:tint="#9CA3AF" />
+
+                <!-- 새로고침 -->
+                <ImageButton
+                    android:id="@+id/btnMusicReload"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="새로고침"
+                    android:src="@android:drawable/ic_menu_rotate"
+                    app:tint="#9CA3AF" />
+
+                <!-- 도움말 / 튜토리얼 (?) -->
+                <ImageButton
+                    android:id="@+id/btnMusicHelp"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="도움말"
+                    android:src="@android:drawable/ic_menu_help"
+                    app:tint="#A855F7" />
+            </LinearLayout>
+
+            <!-- 웹 로딩 인디케이터 -->
+            <ProgressBar
+                android:id="@+id/progressMusicLoading"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="3dp"
+                android:indeterminate="true"
+                android:visibility="gone" />
+
+            <!-- Flow Music 모바일 웹뷰 (화면에 전체 노출) -->
+            <WebView
+                android:id="@+id/webViewMusic"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+        </LinearLayout>
+
+        <!-- ============================================================= -->
+        <!-- 3. 통합 보관함 (Unified Vault) & 프로젝트 묶음 컨테이너 -->
+        <!-- ============================================================= -->
+        <LinearLayout
+            android:id="@+id/layoutVaultContainer"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <!-- 보관함 상단 바 (타이틀 + 새 프로젝트 묶음 + 도움말 ?) -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:background="#111827"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="16dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="통합 보관함 (Vault)"
+                    android:textColor="#FFFFFF"
+                    android:textSize="17sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnCreateProjectBundle"
+                    style="@style/Widget.Material3.Button.TonalButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="38dp"
+                    android:text="🎬 프로젝트 묶음"
+                    android:textColor="#FFFFFF"
+                    android:textSize="12sp"
+                    app:backgroundTint="#4F46E5" />
+
+                <ImageButton
+                    android:id="@+id/btnVaultHelp"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:layout_marginStart="6dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="도움말"
+                    android:src="@android:drawable/ic_menu_help"
+                    app:tint="#10B981" />
+            </LinearLayout>
+
+            <!-- 미디어 필터 칩 영역 -->
+            <HorizontalScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="#111827"
+                android:paddingBottom="8dp"
+                android:paddingHorizontal="16dp"
+                android:scrollbars="none">
+
+                <com.google.android.material.chip.ChipGroup
+                    android:id="@+id/chipGroupFilter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:singleSelection="true">
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipFilterAll"
+                        style="@style/Widget.Material3.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:checked="true"
+                        android:text="전체" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipFilterBundle"
+                        style="@style/Widget.Material3.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="🎬 프로젝트 묶음" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipFilterVideo"
+                        style="@style/Widget.Material3.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="📹 Flow 영상" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipFilterImage"
+                        style="@style/Widget.Material3.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="🖼️ Flow 이미지" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipFilterMusic"
+                        style="@style/Widget.Material3.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="🎵 Flow Music" />
+                </com.google.android.material.chip.ChipGroup>
+            </HorizontalScrollView>
+
+            <!-- 보관함 비어있음 안내 뷰 -->
+            <TextView
+                android:id="@+id/textEmptyVault"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:padding="32dp"
+                android:text="다운로드된 결과물이 아직 없습니다.\n\nFlow 및 Flow Music 웹에서 생성 후 [다운로드]를 누르면\n네이티브 셸이 자동으로 가로채어 이곳에 모아둡니다."
+                android:textColor="#6B7280"
+                android:textSize="14sp"
+                android:visibility="gone" />
+
+            <!-- 보관함 에셋 2열 그리드 리사이클러뷰 -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recyclerVault"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:clipToPadding="false"
+                android:padding="8dp" />
+        </LinearLayout>
+
+    </FrameLayout>
+
+    <!-- 하단 내비게이션 바 (Flow, Music, Vault 3개 탭 전환) -->
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottomNavigation"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:layout_gravity="bottom"
+        android:background="#111827"
+        app:itemIconTint="@color/selector_nav_colors"
+        app:itemTextColor="@color/selector_nav_colors"
+        app:labelVisibilityMode="labeled"
+        app:menu="@menu/bottom_nav_menu" />
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>
