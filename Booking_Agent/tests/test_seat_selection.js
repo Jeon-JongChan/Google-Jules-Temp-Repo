@@ -1,4 +1,4 @@
-const { SeatSelectionUtil } = require('../src/main/automation/strategies/SeatSelectionUtil');
+const { SeatSelectionUtil } = require('../src/main/automation/sites/SeatSelectionUtil');
 
 async function testSeatSorting() {
   console.log('Testing Seat Selection Sorting (Y-axis based)...');

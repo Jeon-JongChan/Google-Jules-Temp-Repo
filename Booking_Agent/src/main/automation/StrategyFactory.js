@@ -1,16 +1,16 @@
-const { InterparkStrategy } = require('./strategies/InterparkStrategy');
-const { TicketlinkStrategy } = require('./strategies/TicketlinkStrategy');
-const { Yes24Strategy } = require('./strategies/Yes24Strategy');
-const { MelonStrategy } = require('./strategies/MelonStrategy');
-const { SacStrategy } = require('./strategies/SacStrategy');
-const { SejongStrategy } = require('./strategies/SejongStrategy');
-const { NtokStrategy } = require('./strategies/NtokStrategy');
-const { LgartStrategy } = require('./strategies/LgartStrategy');
-const { LotteStrategy } = require('./strategies/LotteStrategy');
-const { LivenationStrategy } = require('./strategies/LivenationStrategy');
-const { ClubbalconyStrategy } = require('./strategies/ClubbalconyStrategy');
-const { TimeticketStrategy } = require('./strategies/TimeticketStrategy');
-const { NotImplementedStrategy } = require('./strategies/NotImplementedStrategy');
+const { InterparkStrategy } = require('./sites/InterparkStrategy');
+const { TicketlinkStrategy } = require('./sites/TicketlinkStrategy');
+const { Yes24Strategy } = require('./sites/Yes24Strategy');
+const { MelonStrategy } = require('./sites/MelonStrategy');
+const { SacStrategy } = require('./sites/SacStrategy');
+const { SejongStrategy } = require('./sites/SejongStrategy');
+const { NtokStrategy } = require('./sites/NtokStrategy');
+const { LgartStrategy } = require('./sites/LgartStrategy');
+const { LotteStrategy } = require('./sites/LotteStrategy');
+const { LivenationStrategy } = require('./sites/LivenationStrategy');
+const { ClubbalconyStrategy } = require('./sites/ClubbalconyStrategy');
+const { TimeticketStrategy } = require('./sites/TimeticketStrategy');
+const { NotImplementedStrategy } = require('./sites/NotImplementedStrategy');
 
 class StrategyFactory {
   static getStrategy(siteId, page, sendLog, config) {
@@ -36,18 +36,20 @@ class StrategyFactory {
       const url = new URL(urlString);
       const hostname = url.hostname;
 
-      if (hostname.endsWith('interpark.com')) return 'interpark';
-      if (hostname.endsWith('ticketlink.co.kr')) return 'ticketlink';
-      if (hostname.endsWith('yes24.com')) return 'yes24';
-      if (hostname.endsWith('melon.com')) return 'melon';
-      if (hostname.endsWith('sac.or.kr')) return 'sac';
-      if (hostname.endsWith('sejongpac.or.kr')) return 'sejong';
-      if (hostname.endsWith('ntok.go.kr')) return 'ntok';
-      if (hostname.endsWith('lgart.com')) return 'lgart';
-      if (hostname.endsWith('lotteconcerthall.com')) return 'lotte';
-      if (hostname.endsWith('livenation.kr')) return 'livenation';
-      if (hostname.endsWith('clubbalcony.com')) return 'clubbalcony';
-      if (hostname.endsWith('timeticket.co.kr')) return 'timeticket';
+      const checkDomain = (domain) => hostname === domain || hostname.endsWith('.' + domain);
+
+      if (checkDomain('interpark.com')) return 'interpark';
+      if (checkDomain('ticketlink.co.kr')) return 'ticketlink';
+      if (checkDomain('yes24.com')) return 'yes24';
+      if (checkDomain('melon.com')) return 'melon';
+      if (checkDomain('sac.or.kr')) return 'sac';
+      if (checkDomain('sejongpac.or.kr')) return 'sejong';
+      if (checkDomain('ntok.go.kr')) return 'ntok';
+      if (checkDomain('lgart.com')) return 'lgart';
+      if (checkDomain('lotteconcerthall.com')) return 'lotte';
+      if (checkDomain('livenation.kr')) return 'livenation';
+      if (checkDomain('clubbalcony.com')) return 'clubbalcony';
+      if (checkDomain('timeticket.co.kr')) return 'timeticket';
 
       return 'unknown';
     } catch(e) {

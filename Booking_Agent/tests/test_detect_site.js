@@ -4,6 +4,8 @@ function testUrlDetection() {
   const testCases = [
     { url: 'https://ticket.interpark.com/some/path', expected: 'interpark' },
     { url: 'https://evil.com/?x=interpark.com', expected: 'unknown' }, // 보안/오탐 검증
+    { url: 'https://evilinterpark.com', expected: 'unknown' }, // 도메인 오탐 검증
+    { url: 'https://notinterpark.com', expected: 'unknown' }, // 도메인 오탐 검증
     { url: 'http://www.ticketlink.co.kr/product/1234', expected: 'ticketlink' },
     { url: 'https://ticket.yes24.com/Perf/50000', expected: 'yes24' },
     { url: 'https://timeticket.co.kr/index.php?number=123', expected: 'timeticket' },
