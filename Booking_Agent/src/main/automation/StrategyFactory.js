@@ -38,7 +38,7 @@ class StrategyFactory {
 
       const checkDomain = (domain) => hostname === domain || hostname.endsWith('.' + domain);
 
-      if (checkDomain('interpark.com')) return 'interpark';
+      if (checkDomain('interpark.com') || checkDomain('nol.yanolja.com')) return 'interpark';
       if (checkDomain('ticketlink.co.kr')) return 'ticketlink';
       if (checkDomain('yes24.com')) return 'yes24';
       if (checkDomain('melon.com')) return 'melon';

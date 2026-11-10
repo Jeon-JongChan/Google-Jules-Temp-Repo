@@ -3,6 +3,7 @@ const { StrategyFactory } = require('../src/main/automation/StrategyFactory');
 function testUrlDetection() {
   const testCases = [
     { url: 'https://ticket.interpark.com/some/path', expected: 'interpark' },
+    { url: 'https://nol.yanolja.com/ticket/products/26013078', expected: 'interpark' },
     { url: 'https://evil.com/?x=interpark.com', expected: 'unknown' }, // 보안/오탐 검증
     { url: 'https://evilinterpark.com', expected: 'unknown' }, // 도메인 오탐 검증
     { url: 'https://notinterpark.com', expected: 'unknown' }, // 도메인 오탐 검증
