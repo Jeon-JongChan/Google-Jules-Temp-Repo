@@ -1,4 +1,4 @@
-// ※ 미검증: 봇 차단, 리액트 SPA 지연, 파라미터 제약 등으로 실제 페이지 기반 실측 불가. 추측성 코드가 포함되어 있습니다.
+// ※ 미검증: STCLab SURFF 임시 접속 차단(봇 차단) 솔루션에 의해 접근이 막혀 정상적인 DOM 구조 획득 불가.
 const { TicketStrategy } = require('./TicketStrategy');
 
 class Yes24Strategy extends TicketStrategy {

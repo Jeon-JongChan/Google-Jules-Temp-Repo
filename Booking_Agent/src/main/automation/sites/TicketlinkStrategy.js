@@ -1,4 +1,4 @@
-// ※ 미검증: 봇 차단, 리액트 SPA 지연, 파라미터 제약 등으로 실제 페이지 기반 실측 불가. 추측성 코드가 포함되어 있습니다.
+// ※ 미검증: Cloudflare 봇 차단 및 접속 무한 대기 문제(Timeout)로 인해 헤드리스/일반 브라우저 모두에서 DOM 확보 실패
 const { TicketStrategy } = require('./TicketStrategy');
 
 class TicketlinkStrategy extends TicketStrategy {

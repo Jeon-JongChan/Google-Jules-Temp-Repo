@@ -8,7 +8,6 @@ const { NtokStrategy } = require('./sites/NtokStrategy');
 const { LgartStrategy } = require('./sites/LgartStrategy');
 const { LotteStrategy } = require('./sites/LotteStrategy');
 const { LivenationStrategy } = require('./sites/LivenationStrategy');
-const { ClubbalconyStrategy } = require('./sites/ClubbalconyStrategy');
 const { TimeticketStrategy } = require('./sites/TimeticketStrategy');
 const { NotImplementedStrategy } = require('./sites/NotImplementedStrategy');
 
@@ -25,7 +24,6 @@ class StrategyFactory {
       case 'lgart': return new LgartStrategy(page, sendLog, config);
       case 'lotte': return new LotteStrategy(page, sendLog, config);
       case 'livenation': return new LivenationStrategy(page, sendLog, config);
-      case 'clubbalcony': return new ClubbalconyStrategy(page, sendLog, config);
       case 'timeticket': return new TimeticketStrategy(page, sendLog, config);
       default: return new NotImplementedStrategy(page, sendLog, config, '알 수 없는 사이트');
     }
@@ -48,7 +46,6 @@ class StrategyFactory {
       if (checkDomain('lgart.com')) return 'lgart';
       if (checkDomain('lotteconcerthall.com')) return 'lotte';
       if (checkDomain('livenation.kr')) return 'livenation';
-      if (checkDomain('clubbalcony.com')) return 'clubbalcony';
       if (checkDomain('timeticket.co.kr')) return 'timeticket';
 
       return 'unknown';

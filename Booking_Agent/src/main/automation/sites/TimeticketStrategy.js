@@ -1,4 +1,6 @@
-// ※ 미검증: 봇 차단, 리액트 SPA 지연, 파라미터 제약 등으로 실제 페이지 기반 실측 불가. 추측성 코드가 포함되어 있습니다.
+// ※ 미검증: Cloudflare 403 봇 차단 및 "Just a moment..." 챌린지로 인해 실측 불가.
+// Patchright(CDP 누수 방지), Camoufox(브라우저 지문 위조) 등 우회 시도했으나 모두 실패함.
+// IP 평판 문제로 추정되며 일반 가정용 네트워크에서의 확인이 필요함.
 const { TicketStrategy } = require('./TicketStrategy');
 
 class TimeticketStrategy extends TicketStrategy {
