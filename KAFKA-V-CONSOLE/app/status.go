@@ -13,16 +13,16 @@ import (
 
 // runStatus 는 웹 서버 없이 클러스터 상태를 텍스트로 출력한다.
 // 처리량(msg/s)은 두 스냅샷의 차이로 구하므로 첫 출력 전에 interval 만큼 기다린다.
-func runStatus(s *server, c config, w io.Writer) error {
+func runStatus(s *session, c config, w io.Writer) error {
 	c.interval = max(c.interval, snapshotTTL) // 캐시 TTL 보다 짧으면 같은 스냅샷이 재사용되어 rate 가 0 이 된다
 	ctx := context.Background()
-	if _, err := s.snapshot(ctx); err != nil {
+	if _, err := s.Snapshot(ctx); err != nil {
 		return err
 	}
 	fmt.Fprintf(os.Stderr, "measuring throughput for %s ...\n", c.interval)
 	for {
 		time.Sleep(c.interval)
-		snap, err := s.snapshot(ctx)
+		snap, err := s.Snapshot(ctx)
 		if err != nil {
 			// watch 모드에서는 일시적 연결 오류로 종료하지 않고 다음 주기에 재시도
 			if !c.watch {

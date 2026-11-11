@@ -103,3 +103,11 @@ pre { margin: 6px 0 0; white-space: pre-wrap; word-break: break-all; max-height:
 .zoom { position: absolute; top: 8px; right: 8px; display: flex; gap: 4px; align-items: center; background: rgba(255,255,255,.92); padding: 4px 6px; border-radius: 6px; border: 1px solid var(--line); }
 .drawn { position: absolute; bottom: 8px; left: 10px; }
 .pager { display: flex; gap: 8px; align-items: center; justify-content: flex-end; margin-top: 12px; }
+.settings { max-width: 560px; display: grid; gap: 12px; }
+.settings label { display: grid; gap: 4px; font-size: 13px; color: var(--muted, #667085); }
+.settings input, .settings select { width: 100%; }
+.settings-row { display: flex; flex-wrap: wrap; gap: 16px; }
+.settings .check { display: flex; align-items: center; gap: 8px; color: var(--fg); }
+.settings .check input { width: auto; }
+.settings-actions { margin-top: 4px; }
+.banner a { margin-left: 8px; font-weight: 600; }
