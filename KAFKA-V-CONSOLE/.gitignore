@@ -1,8 +1,0 @@
-# build.ps1 writes target binaries and the Linux launcher into this directory
-/kv-console-*
-/kv-console.sh
-/kv-console.json
-app/web/dist/
-.graphify/
-.docs/
-.archify
