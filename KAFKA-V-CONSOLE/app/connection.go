@@ -29,6 +29,8 @@ type connectionProfile struct {
 	SASLMechanism string `json:"saslMechanism"`
 	SASLUser      string `json:"saslUser"`
 	SASLPass      string `json:"saslPass,omitempty"`
+	// ConnectURL 은 Kafka Connect REST 루트다. 비어 있으면 Connect 감시를 하지 않는다.
+	ConnectURL string `json:"connectUrl"`
 }
 
 // defaultConfigPath 는 KVC_CONFIG 또는 실행 파일 옆 kv-console.json 경로다.
@@ -80,6 +82,7 @@ type settingsDTO struct {
 	SASLUser      string `json:"saslUser"`
 	SASLPass      string `json:"saslPass"`
 	SASLPassSet   bool   `json:"saslPassSet"`
+	ConnectURL    string `json:"connectUrl"`
 	ConfigPath    string `json:"configPath"`
 }
 
@@ -97,6 +100,7 @@ func mergeConnectionUpdate(cur connectionProfile, in settingsDTO) connectionProf
 	if in.SASLPass != "" {
 		next.SASLPass = in.SASLPass
 	}
+	next.ConnectURL = strings.TrimSpace(in.ConnectURL)
 	return next
 }
 
@@ -112,6 +116,7 @@ func (p connectionProfile) settingsView(path string) settingsDTO {
 		SASLMechanism: p.SASLMechanism,
 		SASLUser:      p.SASLUser,
 		SASLPassSet:   p.SASLPass != "",
+		ConnectURL:    p.ConnectURL,
 		ConfigPath:    path,
 	}
 }

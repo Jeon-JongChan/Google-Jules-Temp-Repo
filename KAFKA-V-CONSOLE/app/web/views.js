@@ -428,6 +428,10 @@ export const Settings = {
       <input v-model="form.saslPass" type="password" autocomplete="current-password"
         :placeholder="form.saslPassSet ? t('settings.passKeep') : ''">
     </label>
+    <label>{{ t('settings.connect') }}
+      <input v-model="form.connectUrl" :placeholder="t('settings.connectPh')">
+    </label>
+    <p class="muted small">{{ t('settings.connectHint') }}</p>
     <div class="settings-actions">
       <button type="submit" :disabled="saving">{{ saving ? t('settings.saving') : t('settings.save') }}</button>
     </div>

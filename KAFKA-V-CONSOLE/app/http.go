@@ -11,6 +11,7 @@ import (
 // registerAPI 는 JSON API 경로를 mux 에 한 번만 등록한다.
 func (s *session) registerAPI(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/cluster", s.handleCluster)
+	mux.HandleFunc("GET /api/connect", s.handleConnect)
 	mux.HandleFunc("GET /api/topics/{name}/config", s.handleTopicConfig)
 	mux.HandleFunc("GET /api/topics/{name}/messages", s.handleMessages)
 	mux.HandleFunc("GET /api/settings", s.handleGetSettings)

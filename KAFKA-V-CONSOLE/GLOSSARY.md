@@ -20,3 +20,9 @@ HTTP·데스크톱·콘솔은 세션의 심만 사용한다.
 ## 스냅샷 (Snapshot)
 
 UI·콘솔이 한 번에 받아가는 클러스터 상태(브로커·토픽·그룹·처리량).
+
+## Connect 감시 (Connect watch)
+
+Kafka Connect REST 에 등록된 커넥터·태스크·워커 상태.
+싱크 부하는 컨슈머 그룹 `connect-<커넥터 이름>`(또는 `consumer.override.group.id`)의 소비율·Lag.
+소스 부하는 그 커넥터가 쓰는 토픽의 유입률. 같은 토픽의 다른 프로듀서와 합산될 수 있다.

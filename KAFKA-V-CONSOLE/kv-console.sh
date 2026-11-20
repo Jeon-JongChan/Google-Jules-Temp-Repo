@@ -10,6 +10,7 @@
 # 접속 정보는 아래 기본값을 고치거나 실행 시 환경변수로 넘긴다.
 #   KVC_BROKERS=10.0.0.1:9092,10.0.0.2:9092 ./kv-console.sh watch
 #   (TLS/SASL: KVC_TLS, KVC_TLS_CA, KVC_SASL_MECHANISM, KVC_SASL_USER, KVC_SASL_PASS ...)
+#   (Connect 감시: KVC_CONNECT=http://connect:8083)
 : "${KVC_BROKERS:=localhost:9092}"
 export KVC_BROKERS
 

@@ -26,7 +26,7 @@ func envOr(key, def string) string {
 
 // config 는 CLI 플래그/환경변수/로컬 파일로 받은 실행 설정이다.
 type config struct {
-	listen, brokers                   string
+	listen, brokers, connect          string
 	tls, tlsSkipVerify                bool
 	tlsCA, tlsCert, tlsKey            string
 	saslMechanism, saslUser, saslPass string
@@ -48,6 +48,7 @@ func (c config) profile() connectionProfile {
 		SASLMechanism: c.saslMechanism,
 		SASLUser:      c.saslUser,
 		SASLPass:      c.saslPass,
+		ConnectURL:    c.connect,
 	}
 }
 
@@ -92,6 +93,7 @@ func parseConfig() (config, string) {
 	flag.StringVar(&c.saslMechanism, "sasl-mechanism", envOr("KVC_SASL_MECHANISM", file.SASLMechanism), "PLAIN | SCRAM-SHA-256 | SCRAM-SHA-512 (KVC_SASL_MECHANISM)")
 	flag.StringVar(&c.saslUser, "sasl-user", envOr("KVC_SASL_USER", file.SASLUser), "SASL 사용자 (KVC_SASL_USER)")
 	flag.StringVar(&c.saslPass, "sasl-pass", envOr("KVC_SASL_PASS", file.SASLPass), "SASL 비밀번호 (KVC_SASL_PASS)")
+	flag.StringVar(&c.connect, "connect", envOr("KVC_CONNECT", file.ConnectURL), "Kafka Connect REST 주소 (KVC_CONNECT). 비우면 Connect 감시 안 함")
 	showVersion := flag.Bool("version", false, "버전 출력")
 	flag.Parse()
 	if *showVersion {
