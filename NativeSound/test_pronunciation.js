@@ -29,16 +29,29 @@ assertEqual(evaluate("getPronunciationForWord('HELLO', 'word', 'ko')"), '헬로�
 assertEqual(evaluate("getPronunciationForWord('ANGER', 'word', 'ko')"), '엔절', 'Word Mode - Curated Priority (ANGER)');
 assertEqual(evaluate("getPronunciationForWord('THE', 'word', 'ko')"), '더', 'Word Mode - Curated Priority (THE)');
 
-// Test 2-1: CMU Dictionary Expansion Check
-// "TEST" is added to CMUDict but not in Curated, should map to 'T EH1 S T' -> ㅌ에ㅅㅌ
-assertEqual(evaluate("getPronunciationForWord('TEST', 'word', 'ko')"), 'ㅌ에ㅅㅌ', 'Word Mode - CMU Fallback (TEST)');
+// CMU 음소를 음절로 합친다. 자모 나열(ㅌ에ㅅㅌ)이 아니라 실제 음가다.
+assertEqual(evaluate("getPronunciationForWord('TEST', 'word', 'ko')"), '테스트', 'Word Mode - CMU syllable (TEST)');
+assertEqual(evaluate("getPronunciationForWord('FILE', 'word', 'ko')"), '파일', 'Word Mode - CMU syllable (FILE)');
+assertEqual(evaluate("getPronunciationForWord('KNOW', 'word', 'ko')"), '노', 'Word Mode - silent letter (KNOW)');
+assertEqual(evaluate("getPronunciationForWord('WRITE', 'word', 'ko')"), '라이트', 'Word Mode - silent letter (WRITE)');
+assertEqual(evaluate("getPronunciationForWord('WATER', 'word', 'ko')"), '워러', 'Word Mode - flap (WATER)');
+assertEqual(evaluate("getPronunciationForWord('BETTER', 'word', 'ko')"), '베러', 'Word Mode - flap (BETTER)');
+assertEqual(evaluate("getPronunciationForWord('CITY', 'word', 'ko')"), '시리', 'Word Mode - flap (CITY)');
+assertEqual(evaluate("getPronunciationForWord('PARTY', 'word', 'ko')"), '파리', 'Word Mode - flap after R (PARTY)');
+assertEqual(evaluate("getPronunciationForWord('FAMILY', 'word', 'ko')"), '팸리', 'Word Mode - reduced vowel (FAMILY)');
+assertEqual(evaluate("getPronunciationForWord('EVERY', 'word', 'ko')"), '에브리', 'Word Mode - reduced er (EVERY)');
+assertEqual(evaluate("getPronunciationForWord('PHONE', 'word', 'ko')"), '폰', 'Word Mode - PH digraph (PHONE)');
+assertEqual(evaluate("getPronunciationForWord('PSYCHOLOGY', 'word', 'ko')"), '사이칼러지', 'Word Mode - silent P (PSYCHOLOGY)');
+assertEqual(evaluate("getPronunciationForWord('WORLD', 'word', 'ko')"), '월드', 'Word Mode - glide syllable (WORLD)');
+assertEqual(evaluate("getPronunciationForWord('QUEUE', 'word', 'ko')"), '큐', 'Word Mode - letter name vs word (QUEUE)');
+assertEqual(evaluate("getPronunciationForSentence('old school', 'word', 'ko')"), '올드 스쿨', 'Sentence - old school');
 
 // Test 3: Sentence Mode (Conversation - "LET IT GO" mapping bug fix)
 // "LET IT GO" should be "레릿고"
 assertEqual(evaluate("getPronunciationForSentence('LET IT GO', 'conversation', 'ko')"), '레릿고', 'Conversation Mode - Longest phrase replacement first ("LET IT GO")');
 
 // Test 4: Sentence Mode (Conversation - "LET IT")
-assertEqual(evaluate("getPronunciationForSentence('LET IT BE', 'conversation', 'ko')"), '레릿 베', 'Conversation Mode - Shorter phrase replacement ("LET IT")');
+assertEqual(evaluate("getPronunciationForSentence('LET IT BE', 'conversation', 'ko')"), '레릿 비', 'Conversation Mode - Shorter phrase replacement ("LET IT")');
 
 // Test 4-1: Sentence Mode (Conversation - Multi-phrase matching priority)
 // "WHAT ARE YOU DOING" includes "WHAT ARE YOU" mapping and "DOING" mapped by word.
@@ -58,8 +71,10 @@ assertEqual(evaluate("getPronunciationForSentence('(laughing)', 'conversation', 
 assertEqual(evaluate("getPronunciationForWord(\"DON'T\", 'word', 'ko')"), '돈트', 'Contraction check - DONT');
 assertEqual(evaluate("getPronunciationForWord(\"CAN'T\", 'word', 'ko')"), '캔트', 'Contraction check - CANT');
 
-// Test 8: Fallback check
-assertEqual(evaluate("getPronunciationForWord('BE', 'word', 'ko')"), '베', 'Fallback - Should return fallback for unknown word (BE)');
+// BE는 /bi/라서 철자 '베'가 아니다. 사전에 없는 단어만 철자 폴백을 탄다.
+assertEqual(evaluate("getPronunciationForWord('BE', 'word', 'ko')"), '비', 'CMU - BE is /bi/');
+assertEqual(evaluate("getPronunciationForWord('QQQX', 'word', 'ko')"), evaluate("fallbackPronunciation('QQQX')"), 'Fallback - unknown word uses spelling fallback');
+assertEqual(evaluate("getPronunciationForWord('QQQX', 'word', 'ko') === 'QQQX'"), false, 'Fallback - unknown word is not left as spelling');
 assertEqual(evaluate("composeHangul('g', 'a', '')"), '가', 'composeHangul - Happy path 1 (cho + jung)');
 assertEqual(evaluate("composeHangul('h', 'a', 'n')"), '한', 'composeHangul - Happy path 2 (cho + jung + jong)');
 assertEqual(evaluate("composeHangul('g', 'a')"), '가', 'composeHangul - Edge case 1 (undefined jong defaults to 0)');
