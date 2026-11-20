@@ -1,4 +1,5 @@
 const { TicketStrategy } = require('./TicketStrategy');
+const { isBookingControlActive, bookingControlSelector } = require('./BookingButton');
 
 class LotteStrategy extends TicketStrategy {
   getSiteName() {
@@ -9,15 +10,13 @@ class LotteStrategy extends TicketStrategy {
     return await this.page.evaluate(() => !!document.querySelector('#btnMemberLogout_v, #btnMemberLogout, .header .logout, a[href*="logout"]'));
   }
 
+  // 공연 상세의 예매하기 버튼 또는 판매 버튼을 본다.
   async isButtonActive() {
-    return await this.page.evaluate(() => {
-      const btn = document.querySelector('button.btn_perfsale');
-      return btn && !btn.disabled && !btn.classList.contains('disabled') && getComputedStyle(btn).display !== 'none';
-    });
+    return isBookingControlActive(this.page, ['예매하기'], 'button.btn_perfsale');
   }
 
   getBookingButtonSelector() {
-    return 'button.btn_perfsale';
+    return bookingControlSelector(['예매하기'], 'button.btn_perfsale');
   }
 }
 module.exports = { LotteStrategy };

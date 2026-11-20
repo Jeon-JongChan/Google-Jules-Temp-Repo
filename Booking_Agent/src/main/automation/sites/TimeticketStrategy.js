@@ -2,6 +2,7 @@
 // Patchright(CDP 누수 방지), Camoufox(브라우저 지문 위조) 등 우회 시도했으나 모두 실패함.
 // IP 평판 문제로 추정되며 일반 가정용 네트워크에서의 확인이 필요함.
 const { TicketStrategy } = require('./TicketStrategy');
+const { isBookingControlActive, bookingControlSelector } = require('./BookingButton');
 
 class TimeticketStrategy extends TicketStrategy {
   getSiteName() {
@@ -12,15 +13,13 @@ class TimeticketStrategy extends TicketStrategy {
     return await this.page.evaluate(() => !!document.querySelector('.header_logout, a[href*="logout"]'));
   }
 
+  // 구매하기 또는 예매하기 문구, 없으면 기존 구매 버튼을 본다.
   async isButtonActive() {
-    return await this.page.evaluate(() => {
-      const btn = document.querySelector('button.btn_buy, a.btn_reserve, .product_info .buy_btn');
-      return btn && !btn.disabled && !btn.classList.contains('disabled');
-    });
+    return isBookingControlActive(this.page, ['구매하기', '예매하기'], 'button.btn_buy, a.btn_reserve, .product_info .buy_btn');
   }
 
   getBookingButtonSelector() {
-    return 'button.btn_buy, a.btn_reserve, .product_info .buy_btn';
+    return bookingControlSelector(['구매하기', '예매하기'], 'button.btn_buy, a.btn_reserve, .product_info .buy_btn');
   }
 }
 module.exports = { TimeticketStrategy };

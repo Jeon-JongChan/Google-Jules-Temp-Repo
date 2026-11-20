@@ -1,4 +1,5 @@
 const { TicketStrategy } = require('./TicketStrategy');
+const { isBookingControlActive, bookingControlSelector } = require('./BookingButton');
 
 class SacStrategy extends TicketStrategy {
   getSiteName() {
@@ -14,16 +15,13 @@ class SacStrategy extends TicketStrategy {
     });
   }
 
+  // 예매하기 문구 또는 goTicket 링크를 본다. 결제는 외부 예매처로 넘어가는 공연이 있다.
   async isButtonActive() {
-    return await this.page.evaluate(() => {
-      const btn = document.querySelector('a[onclick*="goTicket"]');
-      return btn && getComputedStyle(btn).display !== 'none' && !btn.classList.contains('disabled');
-    });
+    return isBookingControlActive(this.page, ['예매하기'], 'a[onclick*="goTicket"]');
   }
 
   getBookingButtonSelector() {
-    // ※ 주의: 상세 페이지의 예매 링크이나, 실제 결제는 인터파크/NOL 등 외부 예매처로 연결되는 경우가 많음.
-    return 'a[onclick*="goTicket"]';
+    return bookingControlSelector(['예매하기'], 'a[onclick*="goTicket"]');
   }
 }
 module.exports = { SacStrategy };

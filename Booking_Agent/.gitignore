@@ -2,3 +2,7 @@ node_modules/
 dist/
 .DS_Store
 *.log
+
+# 실행 프로그램에 필요 없는 테스트와 일회성 점검 파일
+tests/
+.tools/
