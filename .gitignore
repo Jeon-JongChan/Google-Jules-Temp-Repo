@@ -4,6 +4,7 @@ node_modules/
 .archify
 VSCode AMI Tunning/
 .tools/.graphify/
+.test/
 *.tmp
 Godot/build/*
 !Godot/build/run.cmd
